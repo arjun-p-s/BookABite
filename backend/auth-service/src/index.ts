@@ -1,20 +1,28 @@
 import express, { Express } from 'express';
 import type { Request, Response } from 'express';
 import cors from 'cors';
+import dotenv from "dotenv";
+import connectDB from "./db";
+import authRoutes from "./routes/authRoutes";
+
+
+dotenv.config();
 
 const app: Express = express();
-const port = 3000;
+app.use(express.json());
+const port = process.env.PORT || 3000;
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: process.env.FRONTEND_URL || "*",
     credentials: true,
   })
 );
+app.use("/auth", authRoutes);
 app.get('/', (req: Request, res: Response) => {
-  res.send('Hello World with TypeScript!');
+  res.send('Auth-service is running');
 });
-
+connectDB()
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
