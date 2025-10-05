@@ -26,8 +26,8 @@ export const addRestaurant = async (req: Request, res: Response) => {
         return res.status(500).json({ message: "Server error" });
     }
 };
-
-export const editRestaurant = async (req: Request, res: Response) => {
+ 
+export const editRestaurant = async (req: Request, res: Response)=> {
     try {
         const restaurantId = req.params.id;
         const updates = req.body;
