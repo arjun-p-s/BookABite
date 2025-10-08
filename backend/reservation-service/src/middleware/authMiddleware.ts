@@ -27,3 +27,12 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
+
+
+export const requireRestaurantAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  const user = (req as any).user as ReqUser;
+  if (!user) return res.status(401).json({ message: "Unauthorized" });
+  if (user.role !== "admin") return res.status(403).json({ message: "Admin role required" });
+
+  next();
+};

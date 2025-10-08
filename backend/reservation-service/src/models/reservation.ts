@@ -6,7 +6,6 @@ export interface IReservation extends Document {
     date: string;
     time: string;
     guests: number;
-    status: "pending" | "confirmed" | "cancelled";
     specialRequest?: string;
 }
 
@@ -17,7 +16,6 @@ const reservationSchema = new Schema(
         date: { type: String, required: true },
         time: { type: String, required: true },
         guests: { type: Number, required: true },
-        status: { type: String, enum: ["pending", "confirmed", "cancelled"], default: "pending" },
         specialRequest: { type: String }
     },
     { timestamps: true }
