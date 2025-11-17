@@ -1,5 +1,4 @@
-// Footer.tsx
-
+/** @jsxImportSource @emotion/react */
 import {
   Box,
   Container,
@@ -10,7 +9,6 @@ import {
   HStack,
   VStack,
   SimpleGrid,
- 
   IconButton,
 } from "@chakra-ui/react";
 import {
@@ -20,8 +18,8 @@ import {
   LuMail,
   LuPhone,
   LuMapPin,
-  
 } from "react-icons/lu";
+import { css } from "@emotion/react";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -36,15 +34,16 @@ const Footer = () => {
     >
       <Container maxW="1200px" px={4} py={10}>
         <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={8} mb={8}>
-          {/* About Section */}
           <VStack align="flex-start" gap={4}>
             <Heading
               size="md"
-              bgGradient="to-r"
-              gradientFrom="brand.500"
-              gradientTo="purple.600"
-              bgClip="text"
-              fontWeight="bold"
+              css={css`
+                background: linear-gradient(135deg, #0ea5e9 0%, #14b8a6 50%, #10b981 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                font-weight: 800;
+              `}
             >
               BookABite
             </Heading>
@@ -55,29 +54,34 @@ const Footer = () => {
             <HStack gap={2}>
               <IconButton
                 aria-label="Facebook"
-                icon={<LuFacebook />}
                 variant="ghost"
-                colorScheme="purple"
+                color="#0ea5e9"
                 size="sm"
-              />
+                _hover={{ bg: "rgba(14, 165, 233, 0.1)", color: "#14b8a6" }}
+              >
+                <LuFacebook size={18} />
+              </IconButton>
               <IconButton
                 aria-label="Twitter"
-                icon={<LuTwitter />}
                 variant="ghost"
-                colorScheme="purple"
+                color="#0ea5e9"
                 size="sm"
-              />
+                _hover={{ bg: "rgba(14, 165, 233, 0.1)", color: "#14b8a6" }}
+              >
+                <LuTwitter size={18} />
+              </IconButton>
               <IconButton
                 aria-label="Instagram"
-                icon={<LuInstagram />}
                 variant="ghost"
-                colorScheme="purple"
+                color="#0ea5e9"
                 size="sm"
-              />
+                _hover={{ bg: "rgba(14, 165, 233, 0.1)", color: "#14b8a6" }}
+              >
+                <LuInstagram size={18} />
+              </IconButton>
             </HStack>
           </VStack>
 
-          {/* Quick Links */}
           <VStack align="flex-start" gap={3}>
             <Heading size="sm" mb={2} color="gray.700">
               Quick Links
@@ -86,7 +90,7 @@ const Footer = () => {
               href="/about"
               fontSize="sm"
               color="gray.600"
-              _hover={{ color: "brand.500" }}
+              _hover={{ color: "#0ea5e9" }}
             >
               About Us
             </Link>
@@ -94,7 +98,7 @@ const Footer = () => {
               href="/restaurants"
               fontSize="sm"
               color="gray.600"
-              _hover={{ color: "brand.500" }}
+              _hover={{ color: "#0ea5e9" }}
             >
               Browse Restaurants
             </Link>
@@ -102,7 +106,7 @@ const Footer = () => {
               href="/how-it-works"
               fontSize="sm"
               color="gray.600"
-              _hover={{ color: "brand.500" }}
+              _hover={{ color: "#0ea5e9" }}
             >
               How It Works
             </Link>
@@ -110,13 +114,12 @@ const Footer = () => {
               href="/faq"
               fontSize="sm"
               color="gray.600"
-              _hover={{ color: "brand.500" }}
+              _hover={{ color: "#0ea5e9" }}
             >
               FAQ
             </Link>
           </VStack>
 
-          {/* Support */}
           <VStack align="flex-start" gap={3}>
             <Heading size="sm" mb={2} color="gray.700">
               Support
@@ -125,7 +128,7 @@ const Footer = () => {
               href="/contact"
               fontSize="sm"
               color="gray.600"
-              _hover={{ color: "brand.500" }}
+              _hover={{ color: "#0ea5e9" }}
             >
               Contact Us
             </Link>
@@ -133,7 +136,7 @@ const Footer = () => {
               href="/privacy"
               fontSize="sm"
               color="gray.600"
-              _hover={{ color: "brand.500" }}
+              _hover={{ color: "#0ea5e9" }}
             >
               Privacy Policy
             </Link>
@@ -141,7 +144,7 @@ const Footer = () => {
               href="/terms"
               fontSize="sm"
               color="gray.600"
-              _hover={{ color: "brand.500" }}
+              _hover={{ color: "#0ea5e9" }}
             >
               Terms of Service
             </Link>
@@ -149,13 +152,12 @@ const Footer = () => {
               href="/partners"
               fontSize="sm"
               color="gray.600"
-              _hover={{ color: "brand.500" }}
+              _hover={{ color: "#0ea5e9" }}
             >
               For Restaurants
             </Link>
           </VStack>
 
-          {/* Contact Info */}
           <VStack align="flex-start" gap={3}>
             <Heading size="sm" mb={2} color="gray.700">
               Contact Info
@@ -178,7 +180,7 @@ const Footer = () => {
                 href="mailto:info@bookabite.com"
                 fontSize="sm"
                 color="gray.600"
-                _hover={{ color: "brand.500" }}
+                _hover={{ color: "#0ea5e9" }}
               >
                 info@bookabite.com
               </Link>
@@ -186,9 +188,6 @@ const Footer = () => {
           </VStack>
         </SimpleGrid>
 
-       
-
-        {/* Bottom Bar */}
         <Flex
           direction={{ base: "column", md: "row" }}
           justify="space-between"
@@ -202,21 +201,21 @@ const Footer = () => {
             <Link
               href="/cookies"
               color="gray.600"
-              _hover={{ color: "brand.500" }}
+              _hover={{ color: "#0ea5e9" }}
             >
               Cookie Policy
             </Link>
             <Link
               href="/accessibility"
               color="gray.600"
-              _hover={{ color: "brand.500" }}
+              _hover={{ color: "#0ea5e9" }}
             >
               Accessibility
             </Link>
             <Link
               href="/sitemap"
               color="gray.600"
-              _hover={{ color: "brand.500" }}
+              _hover={{ color: "#0ea5e9" }}
             >
               Sitemap
             </Link>
