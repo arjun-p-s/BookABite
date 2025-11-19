@@ -4,11 +4,10 @@ import {
   Button,
   Heading,
   HStack,
-  IconButton,
   Text,
   useBreakpointValue,
 } from "@chakra-ui/react";
-import { keyframes } from "@emotion/react";
+import { css } from "@emotion/react";
 import { useState } from "react";
 import { LuCheck, LuChevronLeft, LuChevronRight, LuPlus } from "react-icons/lu";
 import type { FoodItem } from "./types";
@@ -19,15 +18,18 @@ type MenuCarouselProps = {
   onToggleFood: (item: FoodItem) => void;
 };
 
-const fadeUp = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+const clampOneLine = css`
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+
+const clampTwoLines = css`
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 `;
 
 const MenuCarousel = ({
@@ -73,7 +75,7 @@ const MenuCarousel = ({
             mx={{ base: "-1rem", md: 0 }}
             px={{ base: "1rem", md: 0 }}
           >
-            {items.map((item, index) => {
+            {items.map((item) => {
               const isSelected = selectedFoods.some((food) => food.id === item.id);
               return (
                 <Box
@@ -126,7 +128,7 @@ const MenuCarousel = ({
                     </Box>
                     <Box p={{ base: 4, md: 4 }} display="flex" flexDirection="column" flex="1">
                       <HStack justify="space-between" align="flex-start" mb={2}>
-                        <Heading fontSize={{ base: "lg", md: "lg" }} noOfLines={1}>
+                        <Heading fontSize={{ base: "lg", md: "lg" }} css={clampOneLine}>
                           {item.name}
                         </Heading>
                         <Text
@@ -144,11 +146,11 @@ const MenuCarousel = ({
                         fontSize={{ base: "sm", md: "sm" }}
                         flex="1"
                         mb={3}
-                        noOfLines={2}
+                        css={clampTwoLines}
                       >
                         {item.description}
                       </Text>
-                      <Button
+                   <Button
                         mt="auto"
                         width="100%"
                         variant={isSelected ? "solid" : "outline"}
@@ -171,10 +173,8 @@ const MenuCarousel = ({
           </Box>
         </Box>
 
-        {/* Navigation Buttons */}
-        <IconButton
+        <Button
           aria-label="Previous"
-          icon={<LuChevronLeft />}
           position="absolute"
           top="50%"
           left={{ base: "0px", md: "-14px" }}
@@ -184,15 +184,18 @@ const MenuCarousel = ({
           borderRadius="full"
           boxShadow="0 8px 20px rgba(15,23,42,0.2)"
           onClick={prevSlide}
-          isDisabled={currentIndex === 0}
+          disabled={currentIndex === 0}
           _hover={{ bg: "#f0f9ff" }}
-          _disabled={{ opacity: 0.4, cursor: "not-allowed" }}
+          opacity={currentIndex === 0 ? 0.4 : 1}
           zIndex={2}
-          size={{ base: "sm", md: "md" }}
-        />
-        <IconButton
+          minW="36px"
+          h="36px"
+          padding="0"
+        >
+          <LuChevronLeft />
+        </Button>
+        <Button
           aria-label="Next"
-          icon={<LuChevronRight />}
           position="absolute"
           top="50%"
           right={{ base: "0px", md: "-14px" }}
@@ -202,12 +205,16 @@ const MenuCarousel = ({
           borderRadius="full"
           boxShadow="0 8px 20px rgba(15,23,42,0.2)"
           onClick={nextSlide}
-          isDisabled={currentIndex >= Math.max(items.length - itemsToShow, 0)}
+          disabled={currentIndex >= Math.max(items.length - itemsToShow, 0)}
           _hover={{ bg: "#f0f9ff" }}
-          _disabled={{ opacity: 0.4, cursor: "not-allowed" }}
+          opacity={currentIndex >= Math.max(items.length - itemsToShow, 0) ? 0.4 : 1}
           zIndex={2}
-          size={{ base: "sm", md: "md" }}
-        />
+          minW="36px"
+          h="36px"
+          padding="0"
+        >
+          <LuChevronRight />
+        </Button>
       </Box>
     </Box>
   );
