@@ -4,6 +4,7 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import { Routes, Route } from 'react-router-dom';
 import HomePage from "./pages/HomePage";
+import RestaurantBookingPage from "./pages/RestaurantBookingPage";
 
 const App = () => {
   return (
@@ -13,6 +14,7 @@ const App = () => {
         <Routes>
           <Route path="/" element={<LoginPage />} />
           <Route path="/home" element={<HomePage />} />
+          <Route path="/booking" element={<RestaurantBookingPage />} />
         </Routes>
       </Box>
       <Footer />

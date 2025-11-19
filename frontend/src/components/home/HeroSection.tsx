@@ -75,12 +75,17 @@ const HeroSection = () => {
   return (
     <Box css={heroStyles}>
       <Container maxW="1200px" px={4} position="relative" zIndex={1}>
-        <VStack gap={8} align="center">
+        <VStack gap={10} align="center">
           <VStack gap={4} textAlign="center" color="white">
             <Heading
               fontSize={{ base: "2.5rem", md: "3.5rem", lg: "4.5rem" }}
               fontWeight="800"
-              letterSpacing="-2px"
+              letterSpacing="-4px"
+              textAlign="center"
+              mx="auto"
+              maxW="900px"
+              width="100%"
+              lineHeight="3.426rem"
               css={css`
                 animation: ${fadeInUp} 0.6s ease-out;
                 text-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
@@ -91,7 +96,9 @@ const HeroSection = () => {
             <Text
               fontSize={{ base: "lg", md: "xl" }}
               opacity={0.95}
-              maxW="600px"
+              maxW="700px"
+              textAlign="center"
+              mx="auto"
               css={css`
                 animation: ${fadeInUp} 0.8s ease-out;
               `}

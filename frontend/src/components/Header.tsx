@@ -11,7 +11,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { LuMenu, LuX, LuUser } from "react-icons/lu";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { css, keyframes } from "@emotion/react";
 import type { ComponentProps } from "react";
 
@@ -95,6 +95,21 @@ const StyledButton = (props: ComponentProps<typeof Button>) => (
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem("token");
+      setIsLoggedIn(!!token);
+    };
+
+    checkAuth();
+    window.addEventListener("storage", checkAuth);
+
+    return () => {
+      window.removeEventListener("storage", checkAuth);
+    };
+  }, []);
 
   return (
     <StyledHeader>
@@ -173,36 +188,47 @@ const Header = () => {
             >
               Contact
             </StyledLink>
+            <StyledLink
+              href="/booking"
+              fontSize="md"
+              fontWeight="700"
+              color="#0ea5e9"
+              _hover={{ color: "#14b8a6" }}
+            >
+              Book a Table
+            </StyledLink>
           </HStack>
 
           {/* Desktop Auth Buttons */}
-          <HStack gap={3} display={{ base: "none", md: "flex" }}>
-            <StyledButton
-              variant="ghost"
-              color="#0ea5e9"
-              _hover={{ 
-                bg: "rgba(14, 165, 233, 0.1)",
-                color: "#14b8a6"
-              }}
-            >
-              <HStack gap={2}>
-                <LuUser size={18} />
-                <Text>Login</Text>
-              </HStack>
-            </StyledButton>
-            <StyledButton
-              bg="linear-gradient(135deg, #0ea5e9 0%, #14b8a6 100%)"
-              color="white"
-              _hover={{ 
-                bg: "linear-gradient(135deg, #14b8a6 0%, #10b981 100%)",
-                opacity: 1
-              }}
-              borderRadius="10px"
-              fontWeight="600"
-            >
-              Sign Up
-            </StyledButton>
-          </HStack>
+          {!isLoggedIn && (
+            <HStack gap={3} display={{ base: "none", md: "flex" }}>
+              <StyledButton
+                variant="ghost"
+                color="#0ea5e9"
+                _hover={{ 
+                  bg: "rgba(14, 165, 233, 0.1)",
+                  color: "#14b8a6"
+                }}
+              >
+                <HStack gap={2}>
+                  <LuUser size={18} />
+                  <Text>Login</Text>
+                </HStack>
+              </StyledButton>
+              <StyledButton
+                bg="linear-gradient(135deg, #0ea5e9 0%, #14b8a6 100%)"
+                color="white"
+                _hover={{ 
+                  bg: "linear-gradient(135deg, #14b8a6 0%, #10b981 100%)",
+                  opacity: 1
+                }}
+                borderRadius="10px"
+                fontWeight="600"
+              >
+                Sign Up
+              </StyledButton>
+            </HStack>
+          )}
 
           {/* Mobile Menu Toggle */}
           <IconButton
@@ -271,34 +297,48 @@ const Header = () => {
               >
                 Contact
               </StyledLink>
-              <StyledButton
-                variant="ghost"
+              <StyledLink
+                href="/booking"
+                fontSize="md"
+                fontWeight="700"
                 color="#0ea5e9"
-                justifyContent="flex-start"
-                _hover={{ 
-                  bg: "rgba(14, 165, 233, 0.1)",
-                  color: "#14b8a6"
-                }}
-                mt={2}
+                _hover={{ color: "#14b8a6" }}
+                py={2}
               >
-                <HStack gap={2}>
-                  <LuUser size={18} />
-                  <Text>Login</Text>
-                </HStack>
-              </StyledButton>
-              <StyledButton
-                bg="linear-gradient(135deg, #0ea5e9 0%, #14b8a6 100%)"
-                color="white"
-                _hover={{ 
-                  bg: "linear-gradient(135deg, #14b8a6 0%, #10b981 100%)",
-                  opacity: 1
-                }}
-                borderRadius="10px"
-                fontWeight="600"
-                mt={1}
-              >
-                Sign Up
-              </StyledButton>
+                Book a Table
+              </StyledLink>
+              {!isLoggedIn && (
+                <>
+                  <StyledButton
+                    variant="ghost"
+                    color="#0ea5e9"
+                    justifyContent="flex-start"
+                    _hover={{ 
+                      bg: "rgba(14, 165, 233, 0.1)",
+                      color: "#14b8a6"
+                    }}
+                    mt={2}
+                  >
+                    <HStack gap={2}>
+                      <LuUser size={18} />
+                      <Text>Login</Text>
+                    </HStack>
+                  </StyledButton>
+                  <StyledButton
+                    bg="linear-gradient(135deg, #0ea5e9 0%, #14b8a6 100%)"
+                    color="white"
+                    _hover={{ 
+                      bg: "linear-gradient(135deg, #14b8a6 0%, #10b981 100%)",
+                      opacity: 1
+                    }}
+                    borderRadius="10px"
+                    fontWeight="600"
+                    mt={1}
+                  >
+                    Sign Up
+                  </StyledButton>
+                </>
+              )}
             </Flex>
           </Box>
         )}
