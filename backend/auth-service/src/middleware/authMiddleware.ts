@@ -1,13 +1,27 @@
 import { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../utils/jwt";
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    const header = req.header("Authorization");
-    if (!header) return res.status(401).json({ message: "No authorization header" });
+const AUTH_COOKIE_NAME = process.env.AUTH_COOKIE_NAME || "bb-auth-token";
 
-    const parts = header.split(" ");
-    const token = parts.length === 2 ? parts[1] : null;
-    if (!token) return res.status(401).json({ message: "Invalid authorization format" });
+const extractToken = (req: Request): string | null => {
+    const header = req.header("Authorization");
+    if (typeof header === "string" && header.startsWith("Bearer ")) {
+        const [, bearerToken] = header.split(" ");
+        if (bearerToken) {
+            return bearerToken;
+        }
+    }
+
+    const cookies = (req as Request & { cookies?: Record<string, string> }).cookies;
+    return cookies?.[AUTH_COOKIE_NAME] ?? null;
+};
+
+export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+    const token = extractToken(req);
+
+    if (!token) {
+        return res.status(401).json({ message: "No authorization token provided" });
+    }
 
     try {
         const payload = verifyToken(token);

@@ -12,13 +12,22 @@ import React, { useState } from "react";
 import { signup, login } from "../services/authService";
 import { useNavigate } from "react-router";
 
+type AuthFormData = {
+  name: string;
+  phone: string;
+  email: string;
+  password: string;
+  role: string;
+};
+
 const LoginPage = () => {
   const [isSignUp, setIsSignUp] = React.useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<AuthFormData>({
     name: "",
     phone: "",
     email: "",
     password: "",
+    role: "admin",
   });
   const navigate = useNavigate();
   
@@ -38,6 +47,7 @@ const LoginPage = () => {
           phone: "",
           email: formData.email,
           password: formData.password,
+          role: formData.role,
         });
       } else {
         const res = await login({

@@ -5,25 +5,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listRestaurants = exports.deleteRestaurant = exports.editRestaurant = exports.addRestaurant = void 0;
 const Restaurant_1 = __importDefault(require("../models/Restaurant"));
-const mongoose_1 = __importDefault(require("mongoose"));
 const addRestaurant = async (req, res) => {
     try {
-        const user = req.user;
-        if (!user)
-            return res.status(401).json({ message: "Unauthorized" });
-        if (user.role !== "admin")
-            return res.status(403).json({ message: "Admin role required" });
-        const { name, cuisine, address, phone, workingHours } = req.body || {};
-        if (!name || !cuisine)
-            return res.status(400).json({ message: "name and cuisine required" });
-        const restaurant = await Restaurant_1.default.create({
-            name,
-            cuisine,
-            address,
-            phone,
-            workingHours,
-            adminIds: [new mongoose_1.default.Types.ObjectId(user.id)]
-        });
+        const restaurant = await Restaurant_1.default.create(req.body);
         return res.status(201).json(restaurant);
     }
     catch (err) {

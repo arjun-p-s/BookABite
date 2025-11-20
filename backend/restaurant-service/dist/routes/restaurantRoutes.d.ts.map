@@ -1,1 +1,1 @@
-{"version":3,"file":"restaurantRoutes.d.ts","sourceRoot":"","sources":["../../src/routes/restaurantRoutes.ts"],"names":[],"mappings":"AAIA,QAAA,MAAM,MAAM,4CAAW,CAAC;AAQxB,OAAO,EAAE,MAAM,IAAI,gBAAgB,EAAE,CAAC"}
+{"version":3,"file":"restaurantRoutes.d.ts","sourceRoot":"","sources":["../../src/routes/restaurantRoutes.ts"],"names":[],"mappings":"AAMA,QAAA,MAAM,MAAM,4CAAW,CAAC;AASxB,OAAO,EAAE,MAAM,IAAI,gBAAgB,EAAE,CAAC"}

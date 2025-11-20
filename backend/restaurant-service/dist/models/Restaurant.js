@@ -35,12 +35,96 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const RestaurantSchema = new mongoose_1.Schema({
-    name: { type: String, required: true, index: true },
-    cuisine: [{ type: String, required: true, index: true }],
-    address: { type: String },
-    phone: { type: String },
-    workingHours: { type: String },
-    adminIds: [{ type: mongoose_1.default.Schema.Types.ObjectId, ref: "User" }]
+    name: {
+        type: String,
+        required: true,
+        trim: true,
+        maxlength: 150,
+    },
+    email: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+    },
+    phone: {
+        type: String,
+        required: true,
+        maxlength: 15,
+    },
+    description: {
+        type: String,
+        maxlength: 2000,
+    },
+    mainImage: {
+        type: String,
+        required: true,
+    },
+    galleryImages: [
+        {
+            type: String,
+        }
+    ],
+    workingSchedule: [
+        {
+            day: { type: String, required: true },
+            isOpen: { type: Boolean, default: true },
+        }
+    ],
+    timeSchedule: {
+        openTime: { type: String, required: true },
+        closeTime: { type: String, required: true },
+    },
+    cuisineType: {
+        type: [String],
+        default: [],
+    },
+    specialTags: {
+        type: [String],
+        default: [],
+    },
+    totalCapacity: {
+        type: Number,
+        required: true,
+        min: 0,
+    },
+    tableTypes: [
+        {
+            seats: Number,
+            count: Number,
+        }
+    ],
+    maxBookingPerSlot: {
+        type: Number,
+        default: 10,
+    },
+    address: {
+        street: String,
+        city: String,
+        state: String,
+        country: String,
+        pincode: String,
+    },
+    geoCoordinates: {
+        lat: Number,
+        lng: Number,
+    },
+    ownerName: {
+        type: String,
+        required: true,
+    },
+    ownerIdProof: {
+        type: String,
+    },
+    accountStatus: {
+        type: String,
+        enum: ["pending", "approved", "rejected"],
+        default: "pending",
+    },
+    isVerified: {
+        type: Boolean,
+        default: false,
+    },
 }, { timestamps: true });
 exports.default = mongoose_1.default.model("Restaurant", RestaurantSchema);
 //# sourceMappingURL=Restaurant.js.map

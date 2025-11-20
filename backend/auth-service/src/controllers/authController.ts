@@ -4,6 +4,19 @@ import bcrypt from "bcrypt";
 import { createToken } from "../utils/jwt";
 
 const SALT_ROUNDS = parseInt(process.env.SALT_ROUNDS || "10", 10);
+const AUTH_COOKIE_NAME = process.env.AUTH_COOKIE_NAME || "bb-auth-token";
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+
+const setAuthCookie = (res: Response, token: string) => {
+    res.cookie(AUTH_COOKIE_NAME, token, {
+        httpOnly: true,
+        secure: IS_PRODUCTION,
+        sameSite: IS_PRODUCTION ? "none" : "lax",
+        maxAge: ONE_HOUR_MS,
+        path: "/"
+    });
+};
 
 export const signup = async (req: Request, res: Response) => {
     try {
@@ -24,6 +37,8 @@ export const signup = async (req: Request, res: Response) => {
 
         const token = createToken(user.id, user.role);
         const safeUser = { id: user.id, name: user.name, email: user.email, role: user.role, restaurantId: user.restaurantId };
+
+        setAuthCookie(res, token);
 
         return res.status(201).json({ user: safeUser, token });
     } catch (err: any) {
@@ -47,6 +62,8 @@ export const login = async (req: Request, res: Response) => {
 
         const token = createToken(user.id, user.role);
         const safeUser = { id: user.id, name: user.name, email: user.email, role: user.role, restaurantId: user.restaurantId };
+
+        setAuthCookie(res, token);
 
         return res.status(200).json({ user: safeUser, token });
     } catch (err) {

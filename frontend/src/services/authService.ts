@@ -8,7 +8,9 @@ export const signup = async (userData: {
   phone: string;
   password: string;
 }) => {
-  const response = await axios.post(`${API_URL}/signup`, userData);
+  const response = await axios.post(`${API_URL}/signup`, userData, {
+    withCredentials: true,
+  });
   return response.data;
 };
 
@@ -16,6 +18,8 @@ export const login = async (userData: {
   email: string;
   password: string;
 }) => {
-  const response = await axios.post(`${API_URL}/login`, userData);
+  const response = await axios.post(`${API_URL}/login`, userData, {
+    withCredentials: true,
+  });
   return response.data;
 };

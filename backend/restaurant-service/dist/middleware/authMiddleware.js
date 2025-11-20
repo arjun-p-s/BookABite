@@ -36,9 +36,6 @@ const requireRestaurantAdmin = async (req, res, next) => {
     const restaurant = await Restaurant_1.default.findById(restaurantId);
     if (!restaurant)
         return res.status(404).json({ message: "Restaurant not found" });
-    const isAdminForThis = restaurant.adminIds.some((aid) => aid.toString() === user.id);
-    if (!isAdminForThis)
-        return res.status(403).json({ message: "You are not an admin of this restaurant" });
     next();
 };
 exports.requireRestaurantAdmin = requireRestaurantAdmin;

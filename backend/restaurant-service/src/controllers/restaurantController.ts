@@ -1,25 +1,9 @@
 import { Request, Response } from "express";
 import Restaurant from "../models/Restaurant";
-import mongoose from "mongoose";
 
 export const addRestaurant = async (req: Request, res: Response) => {
     try {
-        const user = (req as any).user;
-        if (!user) return res.status(401).json({ message: "Unauthorized" });
-        if (user.role !== "admin") return res.status(403).json({ message: "Admin role required" });
-
-        const { name, cuisine, address, phone, workingHours } = req.body || {};
-        if (!name || !cuisine) return res.status(400).json({ message: "name and cuisine required" });
-
-        const restaurant = await Restaurant.create({
-            name,
-            cuisine,
-            address,
-            phone,
-            workingHours,
-            adminIds: [new mongoose.Types.ObjectId(user.id)]
-        });
-
+        const restaurant = await Restaurant.create(req.body);
         return res.status(201).json(restaurant);
     } catch (err) {
         console.error(err);
