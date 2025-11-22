@@ -1,8 +1,8 @@
 import { Box } from "@chakra-ui/react";
 import LoginPage from "./pages/LoginPage";
-import Header from './components/Header';
-import Footer from './components/Footer';
-import { Routes, Route } from 'react-router-dom';
+import Header from "./components/Header";
+import Footer from "./components/Footer";
+import { Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import RestaurantBookingPage from "./pages/RestaurantBookingPage";
 import RestaurantListingPage from "./pages/RestaurantListingPage";
@@ -10,9 +10,15 @@ import RestaurantRegistrationPage from "./pages/RestaurantRegistrationPage";
 import { ChatProvider, useChat } from "./contexts/ChatContext";
 import ChatPanel from "./components/chat/ChatPanel";
 import FloatingActionButton from "./components/chat/FloatingActionButton";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import OrdersPage from "./pages/admin/OrdersPage";
+import BookingListingPage from "./pages/admin/BookingsPage";
+import TimeSlotListingPage from "./pages/admin/TimeSlotsPage";
+import AdminRestaurantListingPage from "./pages/admin/RestaurantsListPage";
 
 const AppContent = () => {
-  const { isOpen, messages, isLoading, openChat, closeChat, sendMessage } = useChat();
+  const { isOpen, messages, isLoading, openChat, closeChat, sendMessage } =
+    useChat();
 
   return (
     <Box minH="100vh" bg="gray.50" display="flex" flexDirection="column">
@@ -24,6 +30,12 @@ const AppContent = () => {
           <Route path="/booking" element={<RestaurantBookingPage />} />
           <Route path="/restaurants" element={<RestaurantListingPage />} />
           <Route path="/register" element={<RestaurantRegistrationPage />} />
+
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/restaurants" element={<AdminRestaurantListingPage />} />
+          <Route path="/admin/bookings" element={<BookingListingPage />} />
+          <Route path="/admin/orders" element={<OrdersPage />} />
+          <Route path="/admin/timeslots" element={<TimeSlotListingPage />} />
         </Routes>
       </Box>
       <Footer />

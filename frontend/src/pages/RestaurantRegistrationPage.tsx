@@ -1,4 +1,4 @@
-import { Box, Button, Container, VStack } from "@chakra-ui/react";
+import { Box, Button, Container, VStack, Spinner, Text, useDisclosure } from "@chakra-ui/react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -16,6 +16,9 @@ import type {
 
 const RestaurantRegistrationPage = () => {
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
+
   const [formData, setFormData] = useState<RegistrationFormData>({
     restaurantName: "",
     email: "",
@@ -61,32 +64,69 @@ const RestaurantRegistrationPage = () => {
     return response.data.url as string;
   };
 
+  const showAlert = (message: string, type: "success" | "error" | "warning") => {
+    // Create a custom alert with better styling
+    const alertDiv = document.createElement("div");
+    alertDiv.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 24px;
+      border-radius: 12px;
+      z-index: 9999;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      animation: slideIn 0.3s ease;
+      max-width: 400px;
+      ${type === "success" ? "background: #10b981; color: white;" : ""}
+      ${type === "error" ? "background: #ef4444; color: white;" : ""}
+      ${type === "warning" ? "background: #f59e0b; color: white;" : ""}
+    `;
+    alertDiv.textContent = message;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+      alertDiv.style.animation = "slideOut 0.3s ease";
+      setTimeout(() => alertDiv.remove(), 300);
+    }, 3000);
+  };
+
   const handleSubmit = async () => {
     const token = localStorage.getItem("token");
 
     if (!token) {
-      alert("Please login first to register a restaurant.");
+      showAlert("Please login first to register a restaurant.", "error");
       return;
     }
 
+    setIsSubmitting(true);
+    setUploadProgress("Preparing files...");
+
     try {
+      // Upload logo
+      setUploadProgress("Uploading logo...");
       const logoImageUrl = formData.logoImage
         ? await uploadFileToCloudinary(formData.logoImage, token)
         : null;
 
+      // Upload gallery images
+      setUploadProgress(`Uploading gallery images (${formData.galleryImages.length} files)...`);
       const galleryImageUrls = await Promise.all(
         formData.galleryImages.map((image) => uploadFileToCloudinary(image, token))
       );
 
+      // Upload owner ID proof
+      setUploadProgress("Uploading owner ID proof...");
       const ownerIdProofUrl = formData.ownerIdProof
         ? await uploadFileToCloudinary(formData.ownerIdProof, token)
         : null;
 
-      const mainImageUrl =
-        logoImageUrl || galleryImageUrls[0] || ownerIdProofUrl;
+      const mainImageUrl = logoImageUrl || galleryImageUrls[0] || ownerIdProofUrl;
 
       if (!mainImageUrl) {
-        alert("Please upload at least one image (logo or gallery) for the restaurant.");
+        showAlert("Please upload at least one image (logo or gallery) for the restaurant.", "warning");
+        setIsSubmitting(false);
+        setUploadProgress("");
         return;
       }
 
@@ -132,6 +172,7 @@ const RestaurantRegistrationPage = () => {
         isVerified: false,
       };
 
+      setUploadProgress("Submitting registration...");
       await axios.post("http://localhost:3002/restaurants/add", payload, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -139,11 +180,19 @@ const RestaurantRegistrationPage = () => {
         withCredentials: true,
       });
 
-      alert("Registration successful!");
-      navigate("/restaurants");
+      showAlert("Restaurant registered successfully! 🎉 Redirecting...", "success");
+
+      // Small delay to show success message
+      setTimeout(() => {
+        navigate("/restaurants");
+      }, 1500);
+
     } catch (error) {
       console.error(error);
-      alert("Registration failed!");
+      showAlert("Registration failed! Please try again.", "error");
+    } finally {
+      setIsSubmitting(false);
+      setUploadProgress("");
     }
   };
 
@@ -174,15 +223,34 @@ const RestaurantRegistrationPage = () => {
               color="white"
               _hover={{
                 bgGradient: "linear(to-r, #14b8a6, #10b981)",
-                transform: "translateY(-2px)",
+                transform: isSubmitting ? "none" : "translateY(-2px)",
                 boxShadow: "0 12px 30px rgba(14,165,233,0.35)",
               }}
               onClick={handleSubmit}
               borderRadius="12px"
               fontWeight="700"
+              isDisabled={isSubmitting}
             >
-              Submit Registration
+              {isSubmitting ? (
+                <Box display="flex" alignItems="center" gap={3}>
+                  <Spinner size="sm" />
+                  <Text>{uploadProgress || "Processing..."}</Text>
+                </Box>
+              ) : (
+                "Submit Registration"
+              )}
             </Button>
+            
+            {isSubmitting && (
+              <Text 
+                textAlign="center" 
+                mt={3} 
+                fontSize="sm" 
+                color="gray.600"
+              >
+                Please wait, this may take a moment...
+              </Text>
+            )}
           </Box>
         </VStack>
       </Container>
@@ -191,4 +259,3 @@ const RestaurantRegistrationPage = () => {
 };
 
 export default RestaurantRegistrationPage;
-
