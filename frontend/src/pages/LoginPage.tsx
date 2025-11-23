@@ -27,18 +27,23 @@ const LoginPage = () => {
     phone: "",
     email: "",
     password: "",
-    role: "admin",
+    role: "user", // ⭐ Changed default to "user"
   });
   const navigate = useNavigate();
-  
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-  
+
   const handleSubmit = async () => {
     try {
       if (isSignUp) {
-        const res = await signup(formData);
+        const res = await signup({
+          ...formData,
+          role: "user", // ⭐ Always send "user" for signup
+        });
         console.log(res);
         alert("Signup successful!");
         setIsSignUp(false);
@@ -47,23 +52,35 @@ const LoginPage = () => {
           phone: "",
           email: formData.email,
           password: formData.password,
-          role: formData.role,
+          role: "user",
         });
       } else {
         const res = await login({
           email: formData.email,
           password: formData.password,
+          role: formData.role, // ⭐ Send role in login
         });
-        localStorage.setItem("token", res.token); 
+        localStorage.setItem("token", res.token);
+        localStorage.setItem("user", JSON.stringify(res.user)); // ⭐ Store user data
         console.log(res);
         alert("Login successful!");
-        navigate("/home");
+
+        // ⭐ Redirect based on role
+        if (res.user.role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/home");
+        }
       }
     } catch (err: any) {
-      alert(err.response?.data?.error || "Something went wrong");
+      alert(
+        err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Something went wrong"
+      );
     }
   };
-  
+
   return (
     <LoginContainer>
       <LoginCard>
@@ -101,6 +118,29 @@ const LoginPage = () => {
             value={formData.password}
             onChange={handleChange}
           />
+
+          {/* ⭐ Role Selector - Only shown in Login */}
+          {!isSignUp && (
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              className="chakra-input css-s98c7e"
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                border: "1px solid #e2e8f0",
+                borderRadius: "8px",
+                fontSize: "14px",
+                outline: "none",
+                cursor: "pointer",
+              }}
+            >
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+          )}
+
           <LoginButton onClick={handleSubmit}>
             {isSignUp ? "Sign Up" : "Sign In"}
           </LoginButton>

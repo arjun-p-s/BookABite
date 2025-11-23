@@ -22,7 +22,11 @@ export const signup = async (req: Request, res: Response) => {
     try {
         const { name, email, password, role, restaurantId } = req.body || {};
         if (!name || !email || !password) return res.status(400).json({ message: "Missing fields" });
-
+        if (role === "admin") {
+            return res.status(403).json({
+                message: "Cannot create admin accounts through signup"
+            });
+        }
         const exists = await UserModel.findOne({ email });
         if (exists) return res.status(400).json({ message: "Email already registered" });
 
@@ -31,8 +35,8 @@ export const signup = async (req: Request, res: Response) => {
             name,
             email,
             password: hashed,
-            role: role === "admin" ? "admin" : "user",
-            restaurantId: role === "admin" ? restaurantId : undefined
+            role: "user",
+            restaurantId: restaurantId || undefined
         });
 
         const token = createToken(user.id, user.role);
@@ -51,14 +55,19 @@ export const signup = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
     try {
-        const { email, password } = req.body || {};
-        if (!email || !password) return res.status(400).json({ message: "Missing fields" });
+        const { email, password, role } = req.body || {};
+        if (!email || !password || !role) return res.status(400).json({ message: "Missing fields" });
 
         const user = await UserModel.findOne({ email });
         if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
         const match = await bcrypt.compare(password, user.password);
         if (!match) return res.status(400).json({ message: "Invalid credentials" });
+        if (user.role !== role) {
+            return res.status(403).json({
+                message: `This account is registered as ${user.role}`
+            });
+        }
 
         const token = createToken(user.id, user.role);
         const safeUser = { id: user.id, name: user.name, email: user.email, role: user.role, restaurantId: user.restaurantId };

@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import connectDB from "./db";
 import authRoutes from "./routes/authRoutes";
-
+import { seedAdmin } from "./seeders/adminSeeder";
 
 dotenv.config();
 
@@ -25,6 +25,7 @@ app.get('/', (req: Request, res: Response) => {
   res.send('Auth-service is running');
 });
 connectDB()
+seedAdmin();
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });

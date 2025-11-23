@@ -15,6 +15,7 @@ import OrdersPage from "./pages/admin/OrdersPage";
 import BookingListingPage from "./pages/admin/BookingsPage";
 import TimeSlotListingPage from "./pages/admin/TimeSlotsPage";
 import AdminRestaurantListingPage from "./pages/admin/RestaurantsListPage";
+import CreateTimeSlotPage from "./pages/admin/CreateTimeSlotPage";
 
 const AppContent = () => {
   const { isOpen, messages, isLoading, openChat, closeChat, sendMessage } =
@@ -36,6 +37,7 @@ const AppContent = () => {
           <Route path="/admin/bookings" element={<BookingListingPage />} />
           <Route path="/admin/orders" element={<OrdersPage />} />
           <Route path="/admin/timeslots" element={<TimeSlotListingPage />} />
+          <Route path="/admin/timeslots/create" element={<CreateTimeSlotPage />} />
         </Routes>
       </Box>
       <Footer />

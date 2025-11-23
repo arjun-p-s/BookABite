@@ -7,6 +7,7 @@ export const signup = async (userData: {
   email: string;
   phone: string;
   password: string;
+  role?: string;
 }) => {
   const response = await axios.post(`${API_URL}/signup`, userData, {
     withCredentials: true,
@@ -17,6 +18,7 @@ export const signup = async (userData: {
 export const login = async (userData: {
   email: string;
   password: string;
+  role?: string;
 }) => {
   const response = await axios.post(`${API_URL}/login`, userData, {
     withCredentials: true,
