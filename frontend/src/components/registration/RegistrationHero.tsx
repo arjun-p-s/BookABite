@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 import { Box, Container, Heading, Text, VStack } from "@chakra-ui/react";
 import { css, keyframes } from "@emotion/react";
 

@@ -59,3 +59,15 @@ export const listRestaurants = async (req: Request, res: Response) => {
         return res.status(500).json({ message: "Server error" });
     }
 };
+
+export const getRestaurantById = async (req: Request, res: Response) => {
+    try {
+        const restaurantId = req.params.id;
+        const restaurant = await Restaurant.findById(restaurantId);
+        if (!restaurant) return res.status(404).json({ message: "Restaurant not found" });
+        return res.json(restaurant);
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server error" });
+    }
+};

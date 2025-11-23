@@ -9,6 +9,7 @@ const authMiddleware_1 = require("../middleware/authMiddleware");
 const restaurantController_1 = require("../controllers/restaurantController");
 const uploadController_1 = require("../controllers/uploadController");
 const uploadMiddleware_1 = __importDefault(require("../middleware/uploadMiddleware"));
+const restaurantController_2 = require("../controllers/restaurantController");
 const router = (0, express_1.Router)();
 exports.restaurentRoutes = router;
 router.get("/restaurants/list", restaurantController_1.listRestaurants);
@@ -16,4 +17,5 @@ router.post("/restaurants/add", authMiddleware_1.authMiddleware, restaurantContr
 router.put("/restaurants/:id", authMiddleware_1.authMiddleware, authMiddleware_1.requireRestaurantAdmin, restaurantController_1.editRestaurant);
 router.delete("/restaurants/:id", authMiddleware_1.authMiddleware, authMiddleware_1.requireRestaurantAdmin, restaurantController_1.deleteRestaurant);
 router.post("/uploads", authMiddleware_1.authMiddleware, uploadMiddleware_1.default.single("file"), uploadController_1.uploadImage);
+router.get("/restaurants/:id", restaurantController_2.getRestaurantById);
 //# sourceMappingURL=restaurantRoutes.js.map

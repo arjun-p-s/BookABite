@@ -33,11 +33,21 @@ const AppContent = () => {
           <Route path="/register" element={<RestaurantRegistrationPage />} />
 
           <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/restaurants" element={<AdminRestaurantListingPage />} />
+          <Route
+            path="/admin/restaurants"
+            element={<AdminRestaurantListingPage />}
+          />
           <Route path="/admin/bookings" element={<BookingListingPage />} />
           <Route path="/admin/orders" element={<OrdersPage />} />
           <Route path="/admin/timeslots" element={<TimeSlotListingPage />} />
-          <Route path="/admin/timeslots/create" element={<CreateTimeSlotPage />} />
+          <Route
+            path="/admin/timeslots/create"
+            element={<CreateTimeSlotPage />}
+          />
+          <Route
+            path="admin/restaurants/edit/:id"
+            element={<RestaurantRegistrationPage />}
+          />
         </Routes>
       </Box>
       <Footer />

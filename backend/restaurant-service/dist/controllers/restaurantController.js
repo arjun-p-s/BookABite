@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.listRestaurants = exports.deleteRestaurant = exports.editRestaurant = exports.addRestaurant = void 0;
+exports.getRestaurantById = exports.listRestaurants = exports.deleteRestaurant = exports.editRestaurant = exports.addRestaurant = void 0;
 const Restaurant_1 = __importDefault(require("../models/Restaurant"));
 const addRestaurant = async (req, res) => {
     try {
@@ -68,4 +68,18 @@ const listRestaurants = async (req, res) => {
     }
 };
 exports.listRestaurants = listRestaurants;
+const getRestaurantById = async (req, res) => {
+    try {
+        const restaurantId = req.params.id;
+        const restaurant = await Restaurant_1.default.findById(restaurantId);
+        if (!restaurant)
+            return res.status(404).json({ message: "Restaurant not found" });
+        return res.json(restaurant);
+    }
+    catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Server error" });
+    }
+};
+exports.getRestaurantById = getRestaurantById;
 //# sourceMappingURL=restaurantController.js.map
