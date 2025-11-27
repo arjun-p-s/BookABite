@@ -41,7 +41,7 @@ const AppContent = () => {
           <Route path="/admin/orders" element={<OrdersPage />} />
           <Route path="/admin/timeslots" element={<TimeSlotListingPage />} />
           <Route
-            path="/admin/timeslots/create"
+            path="/admin/timeslots/create/:restaurantId"
             element={<CreateTimeSlotPage />}
           />
           <Route

@@ -1,103 +1,537 @@
 import { AuthRequest } from "../middleware/authMiddleware";
 import { Response } from "express";
+import mongoose from "mongoose";
 import Reservation from "../models/reservation";
 import TimeSlot from "../models/timeSlot";
 
-export const addReservation = async (req: AuthRequest, res: Response) => {
-  try {
-    const { restaurantId, date, time, guests, specialRequest } = req.body || {};
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ message: "Unauthorized" });
-    if (!restaurantId || !date || !time || !guests) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
-    const slot = await TimeSlot.findOne({ restaurantId, date, time });
-    if (!slot) return res.status(404).json({ error: "Time slot not found" });
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
 
-    const availableSeats = slot.totalSeats - slot.bookedSeats;
+function generateTimeSlotsForDay(
+  restaurantId: string,
+  date: string,
+  startTime: string,
+  endTime: string,
+  intervalMinutes: number,
+  totalSeats: number,
+  maxPeoplePerBooking: number
+) {
+  const slots = [];
+  const [startHour = 0, startMin = 0] = startTime.split(':').map(Number);
+  const [endHour = 0, endMin = 0] = endTime.split(':').map(Number);
 
-    if (guests > availableSeats) {
-      return res.status(400).json({ error: `Only ${availableSeats} seats left` });
-    }
-    const reservation = new Reservation({
-      userId,
+  let currentTime = new Date();
+  currentTime.setHours(startHour, startMin, 0, 0);
+
+  const endTimeDate = new Date();
+  endTimeDate.setHours(endHour, endMin, 0, 0);
+
+  while (currentTime < endTimeDate) {
+    const timeString = currentTime.toTimeString().slice(0, 5);
+
+    slots.push({
       restaurantId,
       date,
-      time,
-      guests,
-      specialRequest,
+      time: timeString,
+      totalSeats,
+      bookedSeats: 0,
+      maxPeoplePerBooking,
+      isBlocked: false,
     });
 
-    await reservation.save();
-    slot.bookedSeats += guests;
-    await slot.save();
-    res.status(201).json(reservation);
-  } catch (err) {
-        console.error(err);
-    res.status(500).json({ error: "Failed to create reservation" });
+    currentTime.setMinutes(currentTime.getMinutes() + intervalMinutes);
   }
-};
 
-export const listReservation = async (req: AuthRequest, res: Response) => {
-  try {
-    const userId = req.user?.id;
-    const reservations = await Reservation.find({ userId });
-    res.json(reservations);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch reservations" });
-  }
-};
+  return slots;
+}
 
+// ============================================================================
+// TIME SLOT CONTROLLERS
+// ============================================================================
+
+// CREATE BULK TIME SLOTS (FIXED VERSION)
 export const addTimeslot = async (req: AuthRequest, res: Response) => {
   try {
     const user = req.user;
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    if (user.role !== "admin") return res.status(403).json({ message: "Admin role required" });
-    const { restaurantId, date, time, totalSeats } = req.body || {};
-    if (!restaurantId || !date || !time || !totalSeats) {
+    if (user.role !== "admin") {
+      return res.status(403).json({ message: "Admin role required" });
+    }
+
+    const {
+      restaurantId,
+      startDate,
+      endDate,
+      durationType,
+      selectedDays,
+      startTime,
+      endTime,
+      slotInterval,
+      totalSeats,
+      maxPeoplePerBooking,
+    } = req.body || {};
+
+    if (!restaurantId || !startDate || !startTime || !endTime || !totalSeats) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-    const timeSlot = new TimeSlot({
-      restaurantId,
-      date,
-      time,
-      totalSeats,
+
+    // Validate MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
+      return res.status(400).json({ error: "Invalid restaurantId" });
+    }
+
+    // Generate dates based on duration type
+    const datesToGenerate: string[] = [];
+
+    if (durationType === "single") {
+      datesToGenerate.push(startDate);
+    } else if (durationType === "week" && selectedDays?.length > 0) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+        if (selectedDays.includes(dayName)) {
+          const isoDate = d.toISOString().split('T')[0]!;
+          datesToGenerate.push(isoDate);
+        }
+      }
+    } else if (durationType === "range" && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const isoDate = d.toISOString().split('T')[0]!;
+        datesToGenerate.push(isoDate);
+      }
+    }
+
+    if (datesToGenerate.length === 0) {
+      return res.status(400).json({ error: "No valid dates generated" });
+    }
+
+    console.log(`📅 Generating slots for ${datesToGenerate.length} dates:`, datesToGenerate);
+
+    // Generate time slots for all dates
+    const allSlots = [];
+    for (const date of datesToGenerate) {
+      const timeSlots = generateTimeSlotsForDay(
+        restaurantId,
+        date,
+        startTime,
+        endTime,
+        slotInterval || 30,
+        totalSeats,
+        maxPeoplePerBooking || 10
+      );
+      allSlots.push(...timeSlots);
+    }
+
+    console.log(`⏰ Generated ${allSlots.length} total time slots`);
+
+    // CRITICAL FIX: Use insertMany with proper error handling
+    let insertedCount = 0;
+    let duplicateCount = 0;
+
+    try {
+      // Try bulk insert first
+      const result = await TimeSlot.insertMany(allSlots, { ordered: false });
+      insertedCount = result.length;
+      console.log(`✅ Successfully inserted ${insertedCount} new slots`);
+    } catch (err: any) {
+      // Handle duplicate key errors (code 11000)
+      if (err.code === 11000 && err.writeErrors) {
+        // Some inserts succeeded, some failed due to duplicates
+        insertedCount = err.insertedDocs?.length || 0;
+        duplicateCount = err.writeErrors.length;
+        console.log(`⚠️  Inserted ${insertedCount} new slots, ${duplicateCount} duplicates skipped`);
+      } else if (err.code === 11000) {
+        // All duplicates
+        duplicateCount = allSlots.length;
+        console.log(`⚠️  All ${duplicateCount} slots already exist (duplicates)`);
+      } else {
+        // Other error
+        throw err;
+      }
+    }
+
+    // VERIFICATION: Query database to confirm what actually exists
+    const verificationPromises = datesToGenerate.map(date =>
+      TimeSlot.countDocuments({ restaurantId, date })
+    );
+    const counts = await Promise.all(verificationPromises);
+    const totalInDb = counts.reduce((sum, count) => sum + count, 0);
+
+    console.log(`🔍 Verification: ${totalInDb} slots now exist in database across ${datesToGenerate.length} dates`);
+    
+    // Log per-date breakdown
+    datesToGenerate.forEach((date, idx) => {
+      console.log(`   ${date}: ${counts[idx]} slots`);
     });
-    await timeSlot.save();
-    res.status(201).json(timeSlot);
+
+    res.status(201).json({
+      message: `Time slots created successfully`,
+      totalGenerated: allSlots.length,
+      newlyInserted: insertedCount,
+      duplicatesSkipped: duplicateCount,
+      totalInDatabase: totalInDb,
+      dates: datesToGenerate,
+      datesCount: datesToGenerate.length,
+    });
 
   } catch (err) {
-    res.status(500).json({ error: "Failed to create timeslot" });
+    console.error("❌ Error creating timeslots:", err);
+    res.status(500).json({ error: "Failed to create timeslots" });
   }
 };
 
+// GET TIME SLOTS - FIXED TO SUPPORT DATE RANGE
 export const listTimeslots = async (req: AuthRequest, res: Response) => {
   try {
     const { restaurantId, date } = req.params || {};
-    if (!restaurantId || !date) {
-      return res.status(400).json({ error: "Missing required fields" });
+    const { startDate, endDate } = req.query; // NEW: Support date range queries
+    
+    if (!restaurantId) {
+      return res.status(400).json({ error: "Missing restaurantId" });
     }
-    const timeSlots = await TimeSlot.find({ restaurantId, date });
-    res.json(timeSlots);
+
+    if (!mongoose.Types.ObjectId.isValid(restaurantId)) {
+      return res.status(400).json({ error: "Invalid restaurantId" });
+    }
+
+    // Build query
+    const query: any = { 
+      restaurantId,
+      isBlocked: false 
+    };
+
+    // Support both single date and date range
+    if (date) {
+      query.date = date;
+    } else if (startDate && endDate) {
+      query.date = { $gte: startDate, $lte: endDate };
+    } else if (startDate) {
+      query.date = { $gte: startDate };
+    }
+
+    console.log(`🔍 Fetching slots with query:`, query);
+
+    const timeSlots = await TimeSlot.find(query)
+      .sort({ date: 1, time: 1 })
+      .lean();
+
+    console.log(`📊 Found ${timeSlots.length} time slots`);
+
+    // Add available seats calculation
+    const slotsWithAvailability = timeSlots.map(slot => ({
+      _id: slot._id,
+      date: slot.date,
+      time: slot.time,
+      totalSeats: slot.totalSeats,
+      bookedSeats: slot.bookedSeats,
+      availableSeats: slot.totalSeats - slot.bookedSeats,
+      maxPeoplePerBooking: slot.maxPeoplePerBooking,
+      maxCapacity: slot.totalSeats, // For frontend compatibility
+      isBlocked: slot.isBlocked,
+    }));
+
+    res.json({ 
+      timeSlots: slotsWithAvailability,
+      count: slotsWithAvailability.length
+    });
   } catch (err) {
+    console.error("❌ Error fetching timeslots:", err);
     res.status(500).json({ error: "Failed to fetch timeslots" });
   }
 };
 
+// UPDATE TIME SLOT - FIXED
 export const updateTimeslot = async (req: AuthRequest, res: Response) => {
   try {
     const user = req.user;
     if (!user) return res.status(401).json({ message: "Unauthorized" });
-    if (user.role !== "admin") return res.status(403).json({ message: "Admin role required" });
-    const { restaurantId, date, time } = req.body || {};
-    const updates = req.body;
+    if (user.role !== "admin") {
+      return res.status(403).json({ message: "Admin role required" });
+    }
 
-    const updated = await TimeSlot.findOneAndUpdate({ restaurantId, date, time }, updates, { new: true });
-    if (!updated) return res.status(404).json({ message: "Timeslot is not found" });
-    return res.json(updated);
+    const { slotId } = req.params;
+    const { totalSeats, isBlocked } = req.body;
+
+    if (!slotId || !mongoose.Types.ObjectId.isValid(slotId)) {
+      return res.status(400).json({ message: "Invalid slotId" });
+    }
+
+    console.log(`📝 Updating slot ${slotId}:`, { totalSeats, isBlocked });
+
+    // Find the slot first
+    const slot = await TimeSlot.findById(slotId);
+    if (!slot) {
+      return res.status(404).json({ message: "Timeslot not found" });
+    }
+
+    // Update fields
+    if (totalSeats !== undefined) {
+      const parsed = parseInt(totalSeats);
+      if (isNaN(parsed) || parsed < 0) {
+        return res.status(400).json({ message: "Invalid totalSeats value" });
+      }
+      slot.totalSeats = parsed;
+    }
+
+    if (isBlocked !== undefined) {
+      slot.isBlocked = Boolean(isBlocked);
+    }
+
+    // Save with validation
+    await slot.save();
+
+    console.log(`✅ Slot updated successfully:`, slot);
+
+    // VERIFICATION: Re-fetch to confirm
+    const verified = await TimeSlot.findById(slotId).lean();
+    console.log(`🔍 Verified in DB:`, verified);
+
+    return res.json({
+      message: "Time slot updated successfully",
+      timeSlot: {
+        _id: slot._id,
+        date: slot.date,
+        time: slot.time,
+        totalSeats: slot.totalSeats,
+        bookedSeats: slot.bookedSeats,
+        availableSeats: slot.totalSeats - slot.bookedSeats,
+        maxPeoplePerBooking: slot.maxPeoplePerBooking,
+        isBlocked: slot.isBlocked,
+      }
+    });
   } catch (err) {
-    console.error(err);
+    console.error("❌ Error updating slot:", err);
     return res.status(500).json({ message: "Server error" });
   }
+};
 
-}
+// DELETE TIME SLOT
+export const deleteTimeslot = async (req: AuthRequest, res: Response) => {
+  try {
+    const user = req.user;
+    if (!user) return res.status(401).json({ message: "Unauthorized" });
+    if (user.role !== "admin") {
+      return res.status(403).json({ message: "Admin role required" });
+    }
+
+    const { slotId } = req.params;
+
+    if (!slotId || !mongoose.Types.ObjectId.isValid(slotId)) {
+      return res.status(400).json({ message: "Invalid slotId" });
+    }
+
+    const deleted = await TimeSlot.findByIdAndDelete(slotId);
+
+    if (!deleted) {
+      return res.status(404).json({ message: "Timeslot not found" });
+    }
+
+    console.log(`🗑️  Deleted slot: ${slotId}`);
+
+    return res.json({ message: "Time slot deleted successfully" });
+  } catch (err) {
+    console.error("❌ Error deleting slot:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ============================================================================
+// RESERVATION CONTROLLERS
+// ============================================================================
+
+// CREATE RESERVATION
+export const addReservation = async (req: AuthRequest, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { restaurantId, date, time, guests, specialRequest } = req.body || {};
+    const userId = req.user?.id;
+
+    if (!userId) {
+      await session.abortTransaction();
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!restaurantId || !date || !time || !guests) {
+      await session.abortTransaction();
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    if (guests < 1) {
+      await session.abortTransaction();
+      return res.status(400).json({ error: "Number of guests must be at least 1" });
+    }
+
+    // Find time slot
+    const slot = await TimeSlot.findOne({ restaurantId, date, time }).session(session);
+    
+    if (!slot) {
+      await session.abortTransaction();
+      return res.status(404).json({ error: "Time slot not found" });
+    }
+
+    if (slot.isBlocked) {
+      await session.abortTransaction();
+      return res.status(400).json({ error: "This time slot is currently unavailable" });
+    }
+
+    // Check available seats
+    const availableSeats = slot.totalSeats - slot.bookedSeats;
+    if (guests > availableSeats) {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        error: `Only ${availableSeats} seat(s) available for this time slot` 
+      });
+    }
+
+    if (slot.maxPeoplePerBooking && guests > slot.maxPeoplePerBooking) {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        error: `Maximum ${slot.maxPeoplePerBooking} people per booking` 
+      });
+    }
+
+    // Prevent duplicate booking
+    const existingReservation = await Reservation.findOne({
+      userId,
+      restaurantId,
+      date,
+      time,
+      status: { $nin: ["cancelled"] }
+    }).session(session);
+
+    if (existingReservation) {
+      await session.abortTransaction();
+      return res.status(400).json({ 
+        error: "You already have a reservation for this time slot" 
+      });
+    }
+
+    // Create reservation
+    const reservation = new Reservation({
+      userId,
+      restaurantId,
+      timeSlotId: slot._id,
+      date,
+      time,
+      guests,
+      specialRequest: specialRequest || "",
+      status: "confirmed"
+    });
+
+    await reservation.save({ session });
+
+    // Update slot
+    slot.bookedSeats += guests;
+    await slot.save({ session });
+
+    await session.commitTransaction();
+
+    await reservation.populate('restaurantId', 'name mainImage address phone');
+
+    console.log(`✅ Reservation created: ${reservation._id}, ${guests} guests`);
+
+    res.status(201).json({
+      message: "Reservation created successfully",
+      reservation
+    });
+
+  } catch (err) {
+    await session.abortTransaction();
+    console.error("❌ Reservation error:", err);
+    res.status(500).json({ error: "Failed to create reservation" });
+  } finally {
+    session.endSession();
+  }
+};
+
+// GET USER RESERVATIONS
+export const listReservation = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const reservations = await Reservation.find({ userId })
+      .populate('restaurantId', 'name mainImage address phone')
+      .populate('timeSlotId', 'totalSeats bookedSeats')
+      .sort({ date: -1, time: -1 });
+
+    res.json({ reservations });
+  } catch (err) {
+    console.error("❌ Error fetching reservations:", err);
+    res.status(500).json({ error: "Failed to fetch reservations" });
+  }
+};
+
+// CANCEL RESERVATION
+export const cancelReservation = async (req: AuthRequest, res: Response) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { reservationId } = req.params;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      await session.abortTransaction();
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!reservationId) {
+      await session.abortTransaction();
+      return res.status(400).json({ message: "Invalid reservationId" });
+    }
+
+    const reservation = await Reservation.findOne({
+      _id: reservationId,
+      userId,
+      status: { $in: ["pending", "confirmed"] }
+    }).session(session);
+
+    if (!reservation) {
+      await session.abortTransaction();
+      return res.status(404).json({ 
+        error: "Reservation not found or already cancelled" 
+      });
+    }
+
+    // Find time slot and restore seats
+    const slot = await TimeSlot.findById(reservation.timeSlotId).session(session);
+    
+    if (slot) {
+      slot.bookedSeats -= reservation.guests;
+      if (slot.bookedSeats < 0) slot.bookedSeats = 0;
+      await slot.save({ session });
+    }
+
+    // Update reservation status
+    reservation.status = "cancelled";
+    await reservation.save({ session });
+
+    await session.commitTransaction();
+
+    console.log(`🚫 Reservation cancelled: ${reservationId}`);
+
+    res.json({ 
+      message: "Reservation cancelled successfully",
+      reservation 
+    });
+
+  } catch (err) {
+    await session.abortTransaction();
+    console.error("❌ Cancel reservation error:", err);
+    res.status(500).json({ error: "Failed to cancel reservation" });
+  } finally {
+    session.endSession();
+  }
+};

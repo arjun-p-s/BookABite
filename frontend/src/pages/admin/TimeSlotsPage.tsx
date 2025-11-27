@@ -9,40 +9,48 @@ import {
   SimpleGrid,
   Badge,
   Input,
-  useDisclosure,
   Flex,
   Spinner,
   Center,
 } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
-import { LuPlus, LuTrash2, LuClock, LuX, LuChevronDown, LuChevronUp } from "react-icons/lu";
+import { LuPlus, LuTrash2, LuClock, LuX, LuChevronDown, LuChevronUp, LuPencil, LuCalendar, LuCalendarDays } from "react-icons/lu";
+import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../components/admin/layout/AdminLayout";
 import { restaurantApi } from "../../api/adminApi";
+import axios from "axios";
 
 type TimeSlot = {
-  id: string;
-  startTime: string;
-  endTime: string;
-  capacity: number;
-  isActive: boolean;
+  _id: string;
+  date: string;
+  time: string;
+  availableSeats: number;
+  maxCapacity: number;
+  maxPeoplePerBooking: number;
+  isBlocked: boolean;
 };
 
 type Restaurant = {
   _id: string;
   name: string;
-  timeSlots?: TimeSlot[];
 };
 
 const TimeSlotsPage = () => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [expandedRestaurantId, setExpandedRestaurantId] = useState<string | null>(null);
-  const [newSlot, setNewSlot] = useState({
-    startTime: "",
-    endTime: "",
-    capacity: 0,
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
+  const [viewMode, setViewMode] = useState<"today" | "week">("today");
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  // Edit modal state
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingSlot, setEditingSlot] = useState<TimeSlot | null>(null);
+  const [editForm, setEditForm] = useState({
+    availableSeats: 0,
+    isBlocked: false,
   });
 
   useEffect(() => {
@@ -53,19 +61,7 @@ const TimeSlotsPage = () => {
     try {
       setIsLoading(true);
       const data = await restaurantApi.getAll();
-      
-      // Mock time slots for demonstration
-      const restaurantsWithSlots = data.map((restaurant: any) => ({
-        ...restaurant,
-        timeSlots: [
-          { id: `${restaurant._id}-1`, startTime: "09:00", endTime: "11:00", capacity: 20, isActive: true },
-          { id: `${restaurant._id}-2`, startTime: "11:00", endTime: "13:00", capacity: 30, isActive: true },
-          { id: `${restaurant._id}-3`, startTime: "17:00", endTime: "19:00", capacity: 40, isActive: true },
-          { id: `${restaurant._id}-4`, startTime: "19:00", endTime: "21:00", capacity: 50, isActive: true },
-        ],
-      }));
-      
-      setRestaurants(restaurantsWithSlots);
+      setRestaurants(data);
     } catch (error) {
       console.error("Error fetching restaurants:", error);
     } finally {
@@ -73,57 +69,237 @@ const TimeSlotsPage = () => {
     }
   };
 
-  const handleAddSlot = () => {
-    if (!selectedRestaurant || !newSlot.startTime || !newSlot.endTime || newSlot.capacity <= 0) {
-      return;
+ const fetchTimeSlots = async (restaurantId: string) => {
+  try {
+    const token = localStorage.getItem("token");
+    
+    let url = `http://localhost:3001/timeslots/list/${restaurantId}`;
+    
+    // For week view, calculate date range
+    if (viewMode === "week") {
+      const start = new Date(selectedDate);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      
+      const startStr = start.toISOString().split('T')[0];
+      const endStr = end.toISOString().split('T')[0];
+      
+      url += `/range?startDate=${startStr}&endDate=${endStr}`;
+    } else {
+      // Single day view
+      url += `/${selectedDate}`;
     }
 
-    const slot: TimeSlot = {
-      id: Date.now().toString(),
-      startTime: newSlot.startTime,
-      endTime: newSlot.endTime,
-      capacity: newSlot.capacity,
-      isActive: true,
-    };
+    console.log(`🔍 Fetching slots from: ${url}`);
 
-    setRestaurants(restaurants.map(r => 
-      r._id === selectedRestaurant._id 
-        ? { ...r, timeSlots: [...(r.timeSlots || []), slot] }
-        : r
-    ));
+    const response = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      withCredentials: true,
+    });
 
-    setNewSlot({ startTime: "", endTime: "", capacity: 0 });
-    onClose();
+    console.log(`📊 Received ${response.data.timeSlots?.length || 0} slots`);
+    
+    setTimeSlots(response.data.timeSlots || []);
+
+  } catch (error) {
+    console.error("❌ Error fetching time slots:", error);
+    setTimeSlots([]);
+  }
+};
+
+  // Normalize date to YYYY-MM-DD using local date components to avoid timezone shifts
+  const toDateKey = (dateStr: string) => {
+    if (!dateStr) return ""; // Handle undefined safely
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) {
+      return (dateStr || "").split("T")[0] || dateStr;
+    }
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+  
+  const toggleExpand = async (restaurant: Restaurant) => {
+    if (expandedRestaurantId === restaurant._id) {
+      setExpandedRestaurantId(null);
+      setSelectedRestaurant(null);
+      setTimeSlots([]);
+    } else {
+      setExpandedRestaurantId(restaurant._id);
+      setSelectedRestaurant(restaurant);
+      await fetchTimeSlots(restaurant._id);
+    }
   };
 
-  const handleDeleteSlot = (restaurantId: string, slotId: string) => {
-    setRestaurants(restaurants.map(r => 
-      r._id === restaurantId 
-        ? { ...r, timeSlots: (r.timeSlots || []).filter(slot => slot.id !== slotId) }
-        : r
-    ));
+  // Refetch when selectedDate changes for the currently expanded restaurant
+  useEffect(() => {
+    if (selectedRestaurant) {
+      fetchTimeSlots(selectedRestaurant._id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
+  
+  const getFilteredSlots = () => {
+    if (viewMode === "today") {
+      return timeSlots.filter(slot => toDateKey(slot.date) === selectedDate);
+    } else {
+      // Week view - get next 7 days (compare date keys)
+      const start = new Date(selectedDate);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 6);
+      const startKey = toDateKey(start.toISOString());
+      const endKey = toDateKey(end.toISOString());
+
+      return timeSlots.filter(slot => {
+        const key = toDateKey(slot.date);
+        return key >= startKey && key <= endKey;
+      });
+    }
+  };
+  
+  const groupSlotsByDate = () => {
+    const filtered = getFilteredSlots();
+    const grouped: { [key: string]: TimeSlot[] } = {};
+    
+    filtered.forEach(slot => {
+      const key = toDateKey(slot.date);
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(slot);
+    });
+    
+    // Sort slots within each date
+    Object.keys(grouped).forEach(date => {
+      grouped[date].sort((a, b) => a.time.localeCompare(b.time));
+    });
+    
+    // Ensure grouped keys are in chronological order when iterating
+    const ordered: { [key: string]: TimeSlot[] } = {};
+    Object.keys(grouped)
+      .sort((a, b) => (a > b ? 1 : -1))
+      .forEach(k => (ordered[k] = grouped[k]));
+
+    return ordered;
+  };
+  
+  const handleDeleteSlot = async (slotId: string) => {
+    if (!confirm("Are you sure you want to delete this time slot?")) return;
+    
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:3001/timeslots/delete/${slotId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      });
+      
+      showAlert("Time slot deleted successfully", "success");
+      if (selectedRestaurant) {
+        await fetchTimeSlots(selectedRestaurant._id);
+      }
+    } catch (error) {
+      console.error("Error deleting slot:", error);
+      showAlert("Failed to delete time slot", "error");
+    }
   };
 
-  const toggleSlotStatus = (restaurantId: string, slotId: string) => {
-    setRestaurants(restaurants.map(r => 
-      r._id === restaurantId 
-        ? { 
-            ...r, 
-            timeSlots: (r.timeSlots || []).map(slot => 
-              slot.id === slotId ? { ...slot, isActive: !slot.isActive } : slot
-            ) 
-          }
-        : r
-    ));
+  const openEditModal = (slot: TimeSlot) => {
+    console.log("Opening edit for:", slot); // Debug log
+    setEditingSlot(slot);
+    setEditForm({
+      availableSeats: slot.availableSeats,
+      isBlocked: slot.isBlocked,
+    });
+    setIsEditOpen(true);
   };
 
-  const toggleExpand = (restaurantId: string) => {
-    setExpandedRestaurantId(expandedRestaurantId === restaurantId ? null : restaurantId);
+  // --- UPDATED FUNCTION START ---
+ // Replace your handleUpdateSlot function with this:
+const handleUpdateSlot = async () => {
+  // 1. Validation and Debugging
+  if (!editingSlot) {
+    console.error("No editing slot found");
+    return;
+  }
+
+  // FIX: Map frontend field names to backend field names
+  const payload = {
+    totalSeats: editForm.availableSeats,  // Backend expects 'totalSeats'
+    isBlocked: Boolean(editForm.isBlocked) // Ensure it's a boolean
   };
 
-  const openAddModal = (restaurant: Restaurant) => {
-    setSelectedRestaurant(restaurant);
-    onOpen();
+  console.log("Sending Update Payload:", {
+    id: editingSlot._id,
+    data: payload
+  });
+  
+  try {
+    const token = localStorage.getItem("token");
+    
+    // 2. Added Content-Type header explicitly
+    await axios.patch(
+      `http://localhost:3001/timeslots/edit/${editingSlot._id}`,
+      payload, // Using the mapped payload instead of editForm
+      {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json" 
+        },
+        withCredentials: true,
+      },
+    );
+    
+    console.log("Update successful");
+    showAlert("Time slot updated successfully", "success");
+    setIsEditOpen(false);
+    
+    // Refresh list
+    if (selectedRestaurant) {
+      await fetchTimeSlots(selectedRestaurant._id);
+    }
+  } catch (error: any) {
+    // 3. Detailed Error Logging
+    console.error("Error updating slot:", error);
+    if (error.response) {
+      console.error("Server responded with:", error.response.status, error.response.data);
+    }
+    showAlert("Failed to update time slot", "error");
+  }
+};
+  // --- UPDATED FUNCTION END ---
+
+  const showAlert = (message: string, type: "success" | "error") => {
+    const alertDiv = document.createElement("div");
+    alertDiv.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 16px 24px;
+      border-radius: 12px;
+      z-index: 9999;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      ${type === "success" ? "background: #10b981; color: white;" : ""}
+      ${type === "error" ? "background: #ef4444; color: white;" : ""}
+    `;
+    alertDiv.textContent = message;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 3000);
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'short', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  const formatTime = (time: string) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours;
+    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
   };
 
   if (isLoading) {
@@ -139,6 +315,8 @@ const TimeSlotsPage = () => {
     );
   }
 
+  const groupedSlots = groupSlotsByDate();
+
   return (
     <AdminLayout>
       <Box maxW="100%" overflow="hidden">
@@ -146,14 +324,13 @@ const TimeSlotsPage = () => {
           Time Slots Management
         </Heading>
         <Text color="gray.600" mb={6} fontSize={{ base: "sm", md: "md" }}>
-          Manage time slots for each restaurant individually
+          Manage time slots for each restaurant
         </Text>
 
         <VStack spacing={4} align="stretch">
           {restaurants.map((restaurant, index) => {
             const isExpanded = expandedRestaurantId === restaurant._id;
-            const totalSlots = restaurant.timeSlots?.length || 0;
-            const activeSlots = restaurant.timeSlots?.filter(s => s.isActive).length || 0;
+            const restaurantSlots = timeSlots.filter(s => !s.isBlocked);
 
             return (
               <Box
@@ -164,7 +341,7 @@ const TimeSlotsPage = () => {
                 border="1px"
                 borderColor="gray.200"
                 overflow="hidden"
-                transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+                transition="all 0.3s"
                 _hover={{ boxShadow: "md" }}
                 style={{
                   animation: `slideIn 0.4s ease ${index * 0.1}s backwards`,
@@ -176,7 +353,7 @@ const TimeSlotsPage = () => {
                   justify="space-between"
                   align="center"
                   cursor="pointer"
-                  onClick={() => toggleExpand(restaurant._id)}
+                  onClick={() => toggleExpand(restaurant)}
                   _hover={{ bg: "gray.50" }}
                   transition="background 0.2s"
                 >
@@ -186,10 +363,10 @@ const TimeSlotsPage = () => {
                     </Heading>
                     <HStack spacing={3} flexWrap="wrap">
                       <Badge colorScheme="cyan" fontSize="xs">
-                        {totalSlots} time slots
+                        {timeSlots.length} total slots
                       </Badge>
                       <Badge colorScheme="green" fontSize="xs">
-                        {activeSlots} active
+                        {restaurantSlots.length} available
                       </Badge>
                     </HStack>
                   </Box>
@@ -202,11 +379,11 @@ const TimeSlotsPage = () => {
                       _hover={{ bgGradient: "linear(to-r, #14b8a6, #10b981)" }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        openAddModal(restaurant);
+                        navigate(`/admin/timeslots/create/${restaurant._id}`);
                       }}
                       display={{ base: "none", sm: "flex" }}
                     >
-                      Add Slot
+                      Create Slots
                     </Button>
                     <IconButton
                       aria-label="Toggle"
@@ -220,104 +397,154 @@ const TimeSlotsPage = () => {
                   </HStack>
                 </Flex>
 
-                {/* Time Slots Grid */}
+                {/* Time Slots Content */}
                 <Box
-                  maxH={isExpanded ? "1000px" : "0"}
+                  maxH={isExpanded ? "2000px" : "0"}
                   overflow="hidden"
-                  transition="max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s"
+                  transition="max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1)"
                   opacity={isExpanded ? 1 : 0}
                 >
-                  <Box p={{ base: 4, md: 6 }} pt={0}>
+                  <Box p={{ base: 4, md: 6 }} pt={0} borderTop="1px" borderColor="gray.100">
+                    {/* Mobile Create Button */}
                     <Button
                       size="sm"
                       leftIcon={<LuPlus />}
                       bgGradient="linear(to-r, #0ea5e9, #14b8a6)"
                       color="white"
                       _hover={{ bgGradient: "linear(to-r, #14b8a6, #10b981)" }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openAddModal(restaurant);
-                      }}
+                      onClick={() => navigate(`/admin/timeslots/create/${restaurant._id}`)}
                       mb={4}
                       width={{ base: "full", sm: "auto" }}
                       display={{ base: "flex", sm: "none" }}
                     >
-                      Add Time Slot
+                      Create Time Slots
                     </Button>
 
-                    <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} gap={4}>
-                      {(restaurant.timeSlots || []).map((slot, slotIndex) => (
-                        <Box
-                          key={slot.id}
-                          bg="gray.50"
-                          p={4}
-                          borderRadius="lg"
-                          border="1px"
-                          borderColor="gray.200"
-                          transition="all 0.3s"
-                          opacity={slot.isActive ? 1 : 0.6}
-                          _hover={{ transform: "translateY(-2px)", boxShadow: "md" }}
-                          style={{
-                            animation: `fadeIn 0.3s ease ${slotIndex * 0.05}s backwards`,
-                          }}
+                    {/* View Toggle */}
+                    <Flex justify="space-between" align="center" mb={4} gap={4} flexWrap="wrap">
+                      <HStack spacing={2}>
+                        <Button
+                          size="sm"
+                          leftIcon={<LuCalendar />}
+                          colorScheme={viewMode === "today" ? "cyan" : "gray"}
+                          variant={viewMode === "today" ? "solid" : "outline"}
+                          onClick={() => setViewMode("today")}
                         >
-                          <HStack justify="space-between" mb={3}>
-                            <HStack spacing={2}>
-                              <Box
-                                bg="cyan.100"
-                                p={2}
-                                borderRadius="md"
-                                color="cyan.600"
-                              >
-                                <LuClock size={16} />
-                              </Box>
-                              <VStack align="start" spacing={0}>
-                                <Text fontWeight="700" fontSize="sm">
-                                  {slot.startTime} - {slot.endTime}
-                                </Text>
-                                <Text fontSize="xs" color="gray.500">
-                                  {slot.capacity} seats
-                                </Text>
-                              </VStack>
-                            </HStack>
-                            <IconButton
-                              aria-label="Delete slot"
-                              size="xs"
-                              variant="ghost"
-                              colorScheme="red"
-                              onClick={() => handleDeleteSlot(restaurant._id, slot.id)}
-                            >
-                              <LuTrash2 size={14} />
-                            </IconButton>
-                          </HStack>
+                          Today
+                        </Button>
+                        <Button
+                          size="sm"
+                          leftIcon={<LuCalendarDays />}
+                          colorScheme={viewMode === "week" ? "cyan" : "gray"}
+                          variant={viewMode === "week" ? "solid" : "outline"}
+                          onClick={() => setViewMode("week")}
+                        >
+                          Week
+                        </Button>
+                      </HStack>
+                      
+                      <Input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        size="sm"
+                        width="auto"
+                        maxW="200px"
+                      />
+                    </Flex>
 
-                          <HStack justify="space-between">
-                            <Badge
-                              colorScheme={slot.isActive ? "green" : "red"}
-                              fontSize="xs"
-                            >
-                              {slot.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                            <Button
-                              size="xs"
-                              variant="ghost"
-                              colorScheme={slot.isActive ? "red" : "green"}
-                              onClick={() => toggleSlotStatus(restaurant._id, slot.id)}
-                              fontSize="xs"
-                            >
-                              {slot.isActive ? "Deactivate" : "Activate"}
-                            </Button>
-                          </HStack>
-                        </Box>
-                      ))}
-                    </SimpleGrid>
-
-                    {(!restaurant.timeSlots || restaurant.timeSlots.length === 0) && (
-                      <Box textAlign="center" py={8}>
+                    {/* Slots Display */}
+                    {Object.keys(groupedSlots).length === 0 ? (
+                      <Box textAlign="center" py={8} bg="gray.50" borderRadius="lg">
                         <Text color="gray.500" fontSize="sm">
-                          No time slots yet. Click "Add Slot" to create one.
+                          No time slots found for selected {viewMode === "today" ? "date" : "week"}
                         </Text>
+                        <Button
+                          size="sm"
+                          mt={3}
+                          leftIcon={<LuPlus />}
+                          colorScheme="cyan"
+                          variant="ghost"
+                          onClick={() => navigate(`/admin/timeslots/create/${restaurant._id}`)}
+                        >
+                          Create Time Slots
+                        </Button>
                       </Box>
+                    ) : (
+                      <VStack spacing={6} align="stretch">
+                        {Object.entries(groupedSlots).map(([date, slots]) => (
+                          <Box key={date}>
+                            <Text fontWeight="700" fontSize="md" mb={3} color="gray.700">
+                              {formatDate(date)}
+                            </Text>
+                            <SimpleGrid columns={{ base: 1, sm: 2, lg: 3, xl: 4 }} gap={3}>
+                              {slots.map((slot) => (
+                                <Box
+                                  key={slot._id}
+                                  bg={slot.isBlocked ? "red.50" : "gray.50"}
+                                  p={4}
+                                  borderRadius="lg"
+                                  border="1px"
+                                  borderColor={slot.isBlocked ? "red.200" : "gray.200"}
+                                  transition="all 0.3s"
+                                  _hover={{ transform: "translateY(-2px)", boxShadow: "md" }}
+                                >
+                                  <HStack justify="space-between" mb={3}>
+                                    <HStack spacing={2}>
+                                      <Box
+                                        bg={slot.isBlocked ? "red.100" : "cyan.100"}
+                                        p={2}
+                                        borderRadius="md"
+                                        color={slot.isBlocked ? "red.600" : "cyan.600"}
+                                      >
+                                        <LuClock size={16} />
+                                      </Box>
+                                      <VStack align="start" spacing={0}>
+                                        <Text fontWeight="700" fontSize="sm">
+                                          {formatTime(slot.time)}
+                                        </Text>
+                                        <Text fontSize="xs" color="gray.500">
+                                          {slot.availableSeats}/{slot.maxCapacity} seats
+                                        </Text>
+                                      </VStack>
+                                    </HStack>
+                                    <HStack spacing={1}>
+                                      <IconButton
+                                        aria-label="Edit slot"
+                                        size="xs"
+                                        variant="ghost"
+                                        colorScheme="blue"
+                                        onClick={() => openEditModal(slot)}
+                                      >
+                                        <LuPencil size={14} />
+                                      </IconButton>
+                                      <IconButton
+                                        aria-label="Delete slot"
+                                        size="xs"
+                                        variant="ghost"
+                                        colorScheme="red"
+                                        onClick={() => handleDeleteSlot(slot._id)}
+                                      >
+                                        <LuTrash2 size={14} />
+                                      </IconButton>
+                                    </HStack>
+                                  </HStack>
+
+                                  <Badge
+                                    colorScheme={slot.isBlocked ? "red" : "green"}
+                                    fontSize="xs"
+                                    w="full"
+                                    textAlign="center"
+                                    py={1}
+                                  >
+                                    {slot.isBlocked ? "Blocked" : "Available"}
+                                  </Badge>
+                                </Box>
+                              ))}
+                            </SimpleGrid>
+                          </Box>
+                        ))}
+                      </VStack>
                     )}
                   </Box>
                 </Box>
@@ -332,8 +559,8 @@ const TimeSlotsPage = () => {
           </Box>
         )}
 
-        {/* Add Time Slot Modal */}
-        {isOpen && (
+        {/* Edit Modal */}
+        {isEditOpen && editingSlot && (
           <>
             <Box
               position="fixed"
@@ -343,10 +570,8 @@ const TimeSlotsPage = () => {
               bottom={0}
               bg="blackAlpha.600"
               zIndex={1000}
-              onClick={onClose}
-              style={{
-                animation: "fadeIn 0.2s ease",
-              }}
+              onClick={() => setIsEditOpen(false)}
+              style={{ animation: "fadeIn 0.2s ease" }}
             />
             
             <Box
@@ -360,22 +585,20 @@ const TimeSlotsPage = () => {
               zIndex={1001}
               width={{ base: "90%", sm: "400px" }}
               maxW="500px"
-              style={{
-                animation: "scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              }}
+              style={{ animation: "scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}
             >
               <HStack justify="space-between" p={6} borderBottom="1px" borderColor="gray.200">
                 <Box>
-                  <Heading size="md">Add Time Slot</Heading>
+                  <Heading size="md">Edit Time Slot</Heading>
                   <Text fontSize="sm" color="gray.600" mt={1}>
-                    {selectedRestaurant?.name}
+                    {formatDate(editingSlot.date)} at {formatTime(editingSlot.time)}
                   </Text>
                 </Box>
                 <IconButton
                   aria-label="Close"
                   size="sm"
                   variant="ghost"
-                  onClick={onClose}
+                  onClick={() => setIsEditOpen(false)}
                 >
                   <LuX />
                 </IconButton>
@@ -385,88 +608,95 @@ const TimeSlotsPage = () => {
                 <VStack spacing={4} align="stretch">
                   <Box>
                     <Text fontSize="sm" fontWeight="600" mb={2} color="gray.700">
-                      Start Time <Text as="span" color="red.500">*</Text>
-                    </Text>
-                    <Input
-                      type="time"
-                      value={newSlot.startTime}
-                      onChange={(e) => setNewSlot({ ...newSlot, startTime: e.target.value })}
-                      size="md"
-                    />
-                  </Box>
-                  <Box>
-                    <Text fontSize="sm" fontWeight="600" mb={2} color="gray.700">
-                      End Time <Text as="span" color="red.500">*</Text>
-                    </Text>
-                    <Input
-                      type="time"
-                      value={newSlot.endTime}
-                      onChange={(e) => setNewSlot({ ...newSlot, endTime: e.target.value })}
-                      size="md"
-                    />
-                  </Box>
-                  <Box>
-                    <Text fontSize="sm" fontWeight="600" mb={2} color="gray.700">
-                      Capacity (seats) <Text as="span" color="red.500">*</Text>
+                      Available Seats
                     </Text>
                     <Input
                       type="number"
-                      value={newSlot.capacity || ""}
-                      onChange={(e) => setNewSlot({ ...newSlot, capacity: parseInt(e.target.value) || 0 })}
-                      min={1}
-                      placeholder="Enter number of seats"
+                      value={editForm.availableSeats}
+                      onChange={(e) => setEditForm({ ...editForm, availableSeats: parseInt(e.target.value) || 0 })}
+                      min={0}
+                      max={editingSlot.maxCapacity}
                       size="md"
                     />
+                    <Text fontSize="xs" color="gray.500" mt={1}>
+                      Max capacity: {editingSlot.maxCapacity}
+                    </Text>
+                  </Box>
+                  
+                  <Box>
+                    <HStack justify="space-between">
+                      <Text fontSize="sm" fontWeight="600" color="gray.700">
+                        Block this time slot
+                      </Text>
+                      <Box
+                        as="button"
+                        onClick={() => setEditForm({ ...editForm, isBlocked: !editForm.isBlocked })}
+                        px={3}
+                        py={1}
+                        borderRadius="md"
+                        bg={editForm.isBlocked ? "red.500" : "gray.200"}
+                        color={editForm.isBlocked ? "white" : "gray.600"}
+                        fontSize="sm"
+                        fontWeight="600"
+                        transition="all 0.2s"
+                        _hover={{ opacity: 0.8 }}
+                      >
+                        {editForm.isBlocked ? "Blocked" : "Active"}
+                      </Box>
+                    </HStack>
+                    <Text fontSize="xs" color="gray.500" mt={2}>
+                      Blocked slots cannot be booked by customers
+                    </Text>
                   </Box>
                 </VStack>
               </Box>
               
               <HStack justify="flex-end" p={6} borderTop="1px" borderColor="gray.200" gap={3}>
-                <Button variant="ghost" onClick={onClose}>
+                <Button variant="ghost" onClick={() => setIsEditOpen(false)}>
                   Cancel
                 </Button>
                 <Button
                   bgGradient="linear(to-r, #0ea5e9, #14b8a6)"
                   color="white"
-                  onClick={handleAddSlot}
+                  onClick={handleUpdateSlot}
+                  type="button" // EXPLICIT TYPE
                   _hover={{ bgGradient: "linear(to-r, #14b8a6, #10b981)" }}
-                  isDisabled={!newSlot.startTime || !newSlot.endTime || newSlot.capacity <= 0}
                 >
-                  Add Slot
+                  Update Slot
                 </Button>
               </HStack>
             </Box>
-
-            <style>
-              {`
-                @keyframes fadeIn {
-                  from { opacity: 0; }
-                  to { opacity: 1; }
-                }
-                @keyframes scaleIn {
-                  from { 
-                    opacity: 0;
-                    transform: translate(-50%, -50%) scale(0.9);
-                  }
-                  to { 
-                    opacity: 1;
-                    transform: translate(-50%, -50%) scale(1);
-                  }
-                }
-                @keyframes slideIn {
-                  from {
-                    opacity: 0;
-                    transform: translateY(20px);
-                  }
-                  to {
-                    opacity: 1;
-                    transform: translateY(0);
-                  }
-                }
-              `}
-            </style>
           </>
         )}
+
+        <style>
+          {`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes scaleIn {
+              from { 
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.9);
+              }
+              to { 
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+              }
+            }
+            @keyframes slideIn {
+              from {
+                opacity: 0;
+                transform: translateY(20px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+          `}
+        </style>
       </Box>
     </AdminLayout>
   );

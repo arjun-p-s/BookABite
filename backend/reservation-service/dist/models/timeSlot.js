@@ -35,11 +35,53 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importStar(require("mongoose"));
 const timeSlotSchema = new mongoose_1.Schema({
-    restaurantId: { type: String, required: true },
-    date: { type: String, required: true },
-    time: { type: String, required: true },
-    totalSeats: { type: Number, required: true },
-    bookedSeats: { type: Number, default: 0 },
+    restaurantId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Restaurant",
+        required: true,
+        index: true // For faster queries
+    },
+    date: {
+        type: String,
+        required: true,
+        index: true // For date-based queries
+    },
+    time: {
+        type: String,
+        required: true
+    },
+    totalSeats: {
+        type: Number,
+        required: true,
+        min: 1
+    },
+    bookedSeats: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
+    maxPeoplePerBooking: {
+        type: Number,
+        required: true,
+        default: 10,
+        min: 1
+    },
+    isBlocked: {
+        type: Boolean,
+        default: false
+    },
+}, {
+    timestamps: true
 });
+// Compound index to prevent duplicate slots and optimize queries
+timeSlotSchema.index({ restaurantId: 1, date: 1, time: 1 }, { unique: true });
+// Virtual field for available seats
+timeSlotSchema.virtual('availableSeats').get(function () {
+    return this.totalSeats - this.bookedSeats;
+});
+// Method to check if slot has enough seats
+timeSlotSchema.methods.hasAvailableSeats = function (requestedSeats) {
+    return !this.isBlocked && (this.totalSeats - this.bookedSeats) >= requestedSeats;
+};
 exports.default = mongoose_1.default.model("TimeSlot", timeSlotSchema);
 //# sourceMappingURL=timeSlot.js.map

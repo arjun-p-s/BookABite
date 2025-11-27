@@ -1,10 +1,14 @@
 import mongoose, { Document } from "mongoose";
 export interface ITimeSlot extends Document {
-    restaurantId: string;
+    restaurantId: mongoose.Types.ObjectId;
     date: string;
     time: string;
     totalSeats: number;
     bookedSeats: number;
+    maxPeoplePerBooking: number;
+    isBlocked: boolean;
+    createdAt: Date;
+    updatedAt: Date;
 }
 declare const _default: mongoose.Model<ITimeSlot, {}, {}, {}, mongoose.Document<unknown, {}, ITimeSlot, {}, {}> & ITimeSlot & Required<{
     _id: unknown;
