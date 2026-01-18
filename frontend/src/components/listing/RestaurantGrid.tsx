@@ -14,6 +14,7 @@ import {
 } from "@chakra-ui/react";
 import { keyframes } from "@emotion/react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { LuMapPin, LuStar } from "react-icons/lu";
 
@@ -40,6 +41,7 @@ const hoverRise = keyframes`
 `;
 
 const RestaurantGrid = () => {
+  const navigate = useNavigate();
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -220,7 +222,7 @@ const RestaurantGrid = () => {
                 transform: "translateY(-2px)"
               }}
               onClick={() => {
-                window.location.href = `/booking`;
+                navigate(`/booking?id=${restaurant._id}`);
               }}
             >
               Book now

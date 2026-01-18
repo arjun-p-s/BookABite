@@ -25,7 +25,17 @@ const pulseGlow = keyframes`
   }
 `;
 
-const BookingHero = () => (
+type Restaurant = {
+  name: string;
+  description?: string;
+  cuisineType?: string[];
+};
+
+type BookingHeroProps = {
+  restaurant: Restaurant;
+};
+
+const BookingHero = ({ restaurant }: BookingHeroProps) => (
   <Box
     bg="white"
     borderRadius="24px"
@@ -41,19 +51,20 @@ const BookingHero = () => (
           Premium Restaurant Booking
         </Badge>
         <Heading fontSize={{ base: "2.25rem", md: "3rem" }} color="#0f172a" letterSpacing="-1px" lineHeight="1.1">
-          Reserve Your Table & Curate Your Dining Experience
+          {restaurant.name}
         </Heading>
         <Text fontSize="lg" color="gray.600">
-          Streamlined reservations with live inventory visibility, curated menu previews,
-          and seamless add-on ordering.
+          {restaurant.description || "Streamlined reservations with live inventory visibility, curated menu previews, and seamless add-on ordering."}
         </Text>
         <HStack gap={4}>
           <Badge bg="rgba(14,165,233,0.1)" color="#0ea5e9" px={3} py={1}>
             Live Availability
           </Badge>
-          <Badge bg="rgba(16,185,129,0.1)" color="#10b981" px={3} py={1}>
-            Smart Dining
-          </Badge>
+          {restaurant.cuisineType && restaurant.cuisineType.length > 0 && (
+            <Badge bg="rgba(16,185,129,0.1)" color="#10b981" px={3} py={1}>
+              {restaurant.cuisineType[0]}
+            </Badge>
+          )}
         </HStack>
       </VStack>
       <Box
