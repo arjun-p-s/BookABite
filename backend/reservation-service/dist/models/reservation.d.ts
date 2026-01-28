@@ -1,4 +1,4 @@
-import mongoose, { Document } from "mongoose";
+import mongoose, { Document, Model } from "mongoose";
 export interface IReservation extends Document {
     userId: mongoose.Types.ObjectId;
     restaurantId: mongoose.Types.ObjectId;
@@ -8,13 +8,21 @@ export interface IReservation extends Document {
     guests: number;
     specialRequest?: string;
     status: "pending" | "confirmed" | "cancelled" | "completed";
+    confirmationCode: string;
+    customerName: string;
+    customerEmail: string;
+    customerPhone: string;
+    metadata?: Record<string, any>;
+    cancellationReason?: string;
+    cancelledAt?: Date;
+    version: number;
     createdAt: Date;
     updatedAt: Date;
 }
-declare const _default: mongoose.Model<IReservation, {}, {}, {}, mongoose.Document<unknown, {}, IReservation, {}, {}> & IReservation & Required<{
-    _id: unknown;
-}> & {
-    __v: number;
-}, any>;
+export interface IReservationModel extends Model<IReservation> {
+    findByConfirmation(code: string): Promise<IReservation | null>;
+    findByRestaurant(restaurantId: string, filters?: any): Promise<IReservation[]>;
+}
+declare const _default: IReservationModel;
 export default _default;
 //# sourceMappingURL=reservation.d.ts.map

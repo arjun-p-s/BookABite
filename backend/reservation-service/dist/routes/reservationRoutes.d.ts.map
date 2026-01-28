@@ -1,1 +1,1 @@
-{"version":3,"file":"reservationRoutes.d.ts","sourceRoot":"","sources":["../../src/routes/reservationRoutes.ts"],"names":[],"mappings":"AAIA,QAAA,MAAM,MAAM,4CAAW,CAAC;AAaxB,OAAO,EAAE,MAAM,IAAI,iBAAiB,EAAE,CAAC"}
+{"version":3,"file":"reservationRoutes.d.ts","sourceRoot":"","sources":["../../src/routes/reservationRoutes.ts"],"names":[],"mappings":"AAgBA,QAAA,MAAM,MAAM,4CAAW,CAAC;AAmBxB,OAAO,EAAE,MAAM,IAAI,iBAAiB,EAAE,CAAC"}

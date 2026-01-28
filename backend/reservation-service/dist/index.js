@@ -8,6 +8,7 @@ const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const db_1 = __importDefault(require("./db"));
 const reservationRoutes_1 = require("./routes/reservationRoutes");
+const publisher_1 = require("./events/publisher");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use(express_1.default.json());
@@ -20,8 +21,17 @@ app.use("/", reservationRoutes_1.reservationRoutes);
 app.get('/', (req, res) => {
     res.send('Hello World with reservation-service !');
 });
-(0, db_1.default)();
-app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
-});
+const startServer = async () => {
+    try {
+        await (0, db_1.default)();
+        await publisher_1.EventPublisher.getInstance().connect();
+        app.listen(port, () => {
+            console.log(`Server is running on http://localhost:${port}`);
+        });
+    }
+    catch (error) {
+        console.error('Failed to start server:', error);
+    }
+};
+startServer();
 //# sourceMappingURL=index.js.map

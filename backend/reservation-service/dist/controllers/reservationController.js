@@ -3,10 +3,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cancelReservation = exports.listReservation = exports.addReservation = exports.deleteTimeslot = exports.updateTimeslot = exports.listTimeslots = exports.addTimeslot = void 0;
+exports.updateReservationStatus = exports.getRestaurantReservations = exports.getReservationById = exports.getByConfirmation = exports.cancelReservation = exports.listReservation = exports.addReservation = exports.deleteTimeslot = exports.updateTimeslot = exports.listTimeslots = exports.addTimeslot = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const reservation_1 = __importDefault(require("../models/reservation"));
 const timeSlot_1 = __importDefault(require("../models/timeSlot"));
+const common_1 = require("../utils/common");
+const publisher_1 = require("../events/publisher");
+const redis_service_1 = require("../cache/redis.service");
+// ... (Helper functions and Time Slot Controllers remain unchanged)
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
@@ -285,15 +289,24 @@ const addReservation = async (req, res) => {
     const session = await mongoose_1.default.startSession();
     session.startTransaction();
     try {
-        const { restaurantId, date, time, guests, specialRequest } = req.body || {};
+        const { restaurantId, date, time, guests, specialRequest, customerName, customerEmail, customerPhone } = req.body || {};
         const userId = req.user?.id;
         if (!userId) {
             await session.abortTransaction();
             return res.status(401).json({ message: "Unauthorized" });
         }
-        if (!restaurantId || !date || !time || !guests) {
+        if (!restaurantId || !date || !time || !guests || !customerName || !customerEmail || !customerPhone) {
             await session.abortTransaction();
             return res.status(400).json({ error: "Missing required fields" });
+        }
+        // Validation
+        if (!(0, common_1.validateEmail)(customerEmail)) {
+            await session.abortTransaction();
+            return res.status(400).json({ error: "Invalid email address" });
+        }
+        if (!(0, common_1.validatePhone)(customerPhone)) {
+            await session.abortTransaction();
+            return res.status(400).json({ error: "Invalid phone number" });
         }
         if (guests < 1) {
             await session.abortTransaction();
@@ -346,7 +359,10 @@ const addReservation = async (req, res) => {
             time,
             guests,
             specialRequest: specialRequest || "",
-            status: "confirmed"
+            status: "confirmed",
+            customerName,
+            customerEmail,
+            customerPhone
         });
         await reservation.save({ session });
         // Update slot
@@ -354,6 +370,21 @@ const addReservation = async (req, res) => {
         await slot.save({ session });
         await session.commitTransaction();
         await reservation.populate('restaurantId', 'name mainImage address phone');
+        // Publish Event
+        await publisher_1.EventPublisher.getInstance().publishReservationCreated({
+            reservationId: reservation._id.toString(),
+            restaurantId: reservation.restaurantId._id.toString(),
+            userId: userId.toString(),
+            confirmationCode: reservation.confirmationCode,
+            date: reservation.date,
+            time: reservation.time,
+            guests: reservation.guests,
+            customerEmail: reservation.customerEmail,
+            customerName: reservation.customerName,
+            status: reservation.status,
+            specialRequest: reservation.specialRequest || "",
+            createdAt: reservation.createdAt.toISOString()
+        });
         console.log(`✅ Reservation created: ${reservation._id}, ${guests} guests`);
         res.status(201).json({
             message: "Reservation created successfully",
@@ -425,8 +456,18 @@ const cancelReservation = async (req, res) => {
         }
         // Update reservation status
         reservation.status = "cancelled";
+        reservation.cancelledAt = new Date();
+        reservation.cancellationReason = req.body.reason || "User cancelled";
         await reservation.save({ session });
         await session.commitTransaction();
+        // Publish Event
+        await publisher_1.EventPublisher.getInstance().publishReservationCancelled({
+            reservationId: reservation._id.toString(),
+            restaurantId: reservation.restaurantId.toString(),
+            userId: userId.toString(),
+            reason: reservation.cancellationReason || "Unknown",
+            cancelledAt: reservation.cancelledAt.toISOString()
+        });
         console.log(`🚫 Reservation cancelled: ${reservationId}`);
         res.json({
             message: "Reservation cancelled successfully",
@@ -443,4 +484,131 @@ const cancelReservation = async (req, res) => {
     }
 };
 exports.cancelReservation = cancelReservation;
+// GET RESERVATION BY CONFIRMATION CODE
+const getByConfirmation = async (req, res) => {
+    try {
+        const { code } = req.params;
+        if (!code) {
+            return res.status(400).json({ error: "Confirmation code required" });
+        }
+        // Check cache first
+        const cached = await redis_service_1.CacheService.getInstance().getReservationByConfirmation(code.toUpperCase());
+        if (cached) {
+            return res.json({ reservation: cached });
+        }
+        const reservation = await reservation_1.default.findOne({
+            confirmationCode: code.toUpperCase()
+        }).populate('restaurantId', 'name mainImage address phone');
+        if (!reservation) {
+            return res.status(404).json({ error: "Reservation not found" });
+        }
+        // Cache result
+        await redis_service_1.CacheService.getInstance().cacheReservationByConfirmation(code.toUpperCase(), reservation);
+        res.json({ reservation });
+    }
+    catch (err) {
+        console.error("❌ Error fetching reservation by code:", err);
+        res.status(500).json({ error: "Failed to fetch reservation" });
+    }
+};
+exports.getByConfirmation = getByConfirmation;
+// GET RESERVATION BY ID
+const getReservationById = async (req, res) => {
+    try {
+        const { reservationId } = req.params;
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ error: "Unauthorized" });
+        }
+        const reservation = await reservation_1.default.findOne({
+            _id: reservationId,
+            userId // Security: Only allow owner to view
+        }).populate('restaurantId', 'name mainImage address phone');
+        if (!reservation) {
+            return res.status(404).json({ error: "Reservation not found" });
+        }
+        res.json({ reservation });
+    }
+    catch (err) {
+        console.error("❌ Error fetching reservation:", err);
+        res.status(500).json({ error: "Failed to fetch reservation" });
+    }
+};
+exports.getReservationById = getReservationById;
+// GET RESTAURANT RESERVATIONS
+const getRestaurantReservations = async (req, res) => {
+    try {
+        const { restaurantId } = req.params;
+        const { status, date } = req.query;
+        // Security check: Ensure user is admin of this restaurant
+        // This is a simplified check, ideally should check if user owns THIS restaurant
+        const user = req.user;
+        if (!user || user.role !== 'admin') {
+            return res.status(403).json({ error: 'Unauthorized: Restaurant admin access required' });
+        }
+        const filters = {};
+        if (status)
+            filters.status = status;
+        if (date)
+            filters.date = date;
+        const reservations = await reservation_1.default.findByRestaurant(restaurantId, filters) // Cast safely to any
+            .populate('userId', 'name email');
+        res.json({
+            reservations,
+            count: reservations.length
+        });
+    }
+    catch (err) {
+        console.error("❌ Error fetching restaurant reservations:", err);
+        res.status(500).json({ error: "Failed to fetch reservations" });
+    }
+};
+exports.getRestaurantReservations = getRestaurantReservations;
+// UPDATE RESERVATION STATUS
+const updateReservationStatus = async (req, res) => {
+    try {
+        const { reservationId } = req.params;
+        const { status } = req.body;
+        // Security check
+        const user = req.user;
+        if (!user || user.role !== 'admin') {
+            return res.status(403).json({ error: 'Unauthorized: Admin access required' });
+        }
+        if (!['confirmed', 'completed', 'cancelled'].includes(status)) {
+            return res.status(400).json({ error: 'Invalid status' });
+        }
+        const reservation = await reservation_1.default.findById(reservationId);
+        if (!reservation) {
+            return res.status(404).json({ error: 'Reservation not found' });
+        }
+        // If cancelling, ensure seats are restored (if not already cancelled)
+        if (status === 'cancelled' && reservation.status !== 'cancelled') {
+            const slot = await timeSlot_1.default.findById(reservation.timeSlotId);
+            if (slot) {
+                slot.bookedSeats -= reservation.guests;
+                if (slot.bookedSeats < 0)
+                    slot.bookedSeats = 0;
+                await slot.save();
+            }
+            reservation.cancelledAt = new Date();
+            reservation.cancellationReason = req.body.reason || "Admin cancelled";
+        }
+        reservation.status = status;
+        await reservation.save();
+        // Publish Event
+        await publisher_1.EventPublisher.getInstance().publishReservationStatusChanged({
+            reservationId: reservation._id.toString(),
+            restaurantId: reservation.restaurantId.toString(),
+            userId: reservation.userId.toString(),
+            status,
+            updatedAt: new Date().toISOString()
+        });
+        res.json({ message: 'Status updated', reservation });
+    }
+    catch (err) {
+        console.error("❌ Error updating reservation status:", err);
+        res.status(500).json({ error: "Failed to update status" });
+    }
+};
+exports.updateReservationStatus = updateReservationStatus;
 //# sourceMappingURL=reservationController.js.map
