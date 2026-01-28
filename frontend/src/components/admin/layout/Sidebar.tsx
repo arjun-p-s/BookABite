@@ -53,16 +53,17 @@ import {
           </Heading>
           <IconButton
             aria-label="Close menu"
-            icon={<LuX />}
             display={{ base: "flex", lg: "none" }}
             variant="ghost"
             onClick={onClose}
             size="sm"
-          />
+          >
+            <LuX />
+          </IconButton>
         </Flex>
   
         {/* Menu Items */}
-        <VStack spacing={1} align="stretch" p={4}>
+        <VStack gap={1} align="stretch" p={4}>
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (

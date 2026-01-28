@@ -88,7 +88,7 @@ const BookingDetailsSection = ({
             <Text fontWeight="600">Table Types *</Text>
             <Button
               size="sm"
-              colorScheme="cyan"
+              colorPalette="cyan"
               onClick={addTableType}
               borderRadius="12px"
             >
@@ -110,7 +110,7 @@ const BookingDetailsSection = ({
                 <HStack mb={3} justify="flex-end">
                   <Button
                     size="xs"
-                    colorScheme="red"
+                    colorPalette="red"
                     variant="ghost"
                     onClick={() => removeTableType(table.id)}
                   >

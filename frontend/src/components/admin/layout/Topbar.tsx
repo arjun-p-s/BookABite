@@ -36,7 +36,7 @@ import {
         zIndex={10}
       >
         {/* Left: Menu Button (Mobile) + Title */}
-        <HStack spacing={4}>
+        <HStack gap={4}>
           <IconButton
             aria-label="Open menu"
             display={{ base: "flex", lg: "none" }}
@@ -55,7 +55,7 @@ import {
         </HStack>
   
         {/* Right: Notifications + User Menu */}
-        <HStack spacing={2}>
+        <HStack gap={2}>
           {/* Notifications */}
           <Box position="relative">
             <IconButton
@@ -69,7 +69,7 @@ import {
               position="absolute"
               top="2px"
               right="2px"
-              colorScheme="red"
+              colorPalette="red"
               borderRadius="full"
               fontSize="xs"
               px={1}
@@ -80,7 +80,7 @@ import {
   
           {/* User Avatar - Custom Circle */}
           <HStack
-            spacing={2}
+            gap={2}
             cursor="pointer"
             _hover={{ opacity: 0.8 }}
             onClick={handleLogout}

@@ -50,27 +50,31 @@ const BookingChart = () => {
         <Heading size={{ base: "sm", md: "md" }} color="gray.700">
           Booking Analytics
         </Heading>
-        <Box
-          as="select"
+        <select
           value={period}
-          onChange={(e: any) => setPeriod(e.target.value as "7" | "30")}
-          w={{ base: "full", sm: "150px" }}
-          fontSize="sm"
-          p={2}
-          borderRadius="md"
-          border="1px"
-          borderColor="gray.200"
-          bg="white"
-          cursor="pointer"
-          _focus={{
-            outline: "none",
-            borderColor: "cyan.500",
-            boxShadow: "0 0 0 1px #0ea5e9",
+          onChange={(e) => setPeriod(e.target.value as "7" | "30")}
+          style={{
+            width: "150px",
+            fontSize: "0.875rem",
+            padding: "0.5rem",
+            borderRadius: "0.375rem",
+            border: "1px solid #E2E8F0",
+            backgroundColor: "white",
+            cursor: "pointer",
+          }}
+          onFocus={(e) => {
+            e.target.style.outline = "none";
+            e.target.style.borderColor = "#0ea5e9";
+            e.target.style.boxShadow = "0 0 0 1px #0ea5e9";
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = "#E2E8F0";
+            e.target.style.boxShadow = "none";
           }}
         >
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
-        </Box>
+        </select>
       </HStack>
 
       <Box width="100%" height={{ base: "250px", md: "300px" }} overflow="hidden">

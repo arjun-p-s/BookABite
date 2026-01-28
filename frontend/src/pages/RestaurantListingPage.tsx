@@ -2,7 +2,6 @@ import { Box, Container, Stack } from "@chakra-ui/react";
 import ListingFilters from "../components/listing/ListingFilters";
 import ListingHero from "../components/listing/ListingHero";
 import RestaurantGrid from "../components/listing/RestaurantGrid";
-import { restaurantListings } from "../components/listing/listingData";
 
 const RestaurantListingPage = () => {
   return (
@@ -11,7 +10,7 @@ const RestaurantListingPage = () => {
         <Stack gap={{ base: 6, md: 10 }}>
           <ListingHero />
           <ListingFilters />
-          <RestaurantGrid restaurants={restaurantListings} />
+          <RestaurantGrid />
         </Stack>
       </Container>
     </Box>

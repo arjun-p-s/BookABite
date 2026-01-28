@@ -34,17 +34,17 @@ const OrdersPage = () => {
           <Heading size={{ base: "md", md: "lg" }} color="gray.800">
             Orders Management
           </Heading>
-          <Box
-            as="select"
+          <select
             value={statusFilter}
-            onChange={(e: any) => setStatusFilter(e.target.value)}
-            width={{ base: "full", sm: "200px" }}
-            bg="white"
-            p={2}
-            borderRadius="md"
-            border="1px"
-            borderColor="gray.200"
-            fontSize="sm"
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{
+              width: "200px",
+              background: "white",
+              padding: "0.5rem",
+              borderRadius: "0.375rem",
+              border: "1px solid #E2E8F0",
+              fontSize: "0.875rem",
+            }}
           >
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
@@ -52,7 +52,7 @@ const OrdersPage = () => {
             <option value="ready">Ready</option>
             <option value="delivered">Delivered</option>
             <option value="cancelled">Cancelled</option>
-          </Box>
+          </select>
         </HStack>
 
         <Box
@@ -88,14 +88,14 @@ const OrdersPage = () => {
                   <Box as="td" p={4} fontSize="sm" display={{ base: "none", md: "table-cell" }}>{order.customerName}</Box>
                   <Box as="td" p={4} fontSize="sm" display={{ base: "none", lg: "table-cell" }}>{order.restaurantName}</Box>
                   <Box as="td" p={4} display={{ base: "none", sm: "table-cell" }}>
-                    <HStack spacing={1} flexWrap="wrap">
+                    <HStack gap={1} flexWrap="wrap">
                       {order.items.slice(0, 2).map((item, idx) => (
-                        <Badge key={idx} colorScheme="cyan" fontSize="xs" px={2} py={1} borderRadius="md">
+                        <Badge key={idx} colorPalette="cyan" fontSize="xs" px={2} py={1} borderRadius="md">
                           {item}
                         </Badge>
                       ))}
                       {order.items.length > 2 && (
-                        <Badge colorScheme="gray" fontSize="xs" px={2} py={1} borderRadius="md">
+                        <Badge colorPalette="gray" fontSize="xs" px={2} py={1} borderRadius="md">
                           +{order.items.length - 2}
                         </Badge>
                       )}
@@ -105,12 +105,12 @@ const OrdersPage = () => {
                     ${order.totalAmount}
                   </Box>
                   <Box as="td" p={4} display={{ base: "none", md: "table-cell" }}>
-                    <Badge colorScheme="purple" textTransform="capitalize" fontSize="xs">
+                    <Badge colorPalette="purple" textTransform="capitalize" fontSize="xs">
                       {order.paymentMethod}
                     </Badge>
                   </Box>
                   <Box as="td" p={4}>
-                    <Badge colorScheme={getStatusColor(order.status)} textTransform="capitalize" fontSize="xs">
+                    <Badge colorPalette={getStatusColor(order.status)} textTransform="capitalize" fontSize="xs">
                       {order.status}
                     </Badge>
                   </Box>

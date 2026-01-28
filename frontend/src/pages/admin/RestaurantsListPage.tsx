@@ -41,7 +41,7 @@ const RestaurantsListPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { open, onOpen, onClose } = useDisclosure();
 
   useEffect(() => {
     fetchRestaurants();
@@ -116,7 +116,7 @@ const RestaurantsListPage = () => {
       <AdminLayout>
         <Center minH="400px">
           <Box textAlign="center">
-            <Spinner size="xl" color="cyan.500" thickness="4px" mb={4} />
+            <Spinner size="xl" color="cyan.500" mb={4} />
             <Text color="gray.600">Loading restaurants...</Text>
           </Box>
         </Center>
@@ -149,7 +149,7 @@ const RestaurantsListPage = () => {
               </Text>
             </Box>
             <Button
-              leftIcon={<LuPlus />}
+              gap={2}
               bgGradient="linear(to-r, #0ea5e9, #14b8a6)"
               color="white"
               _hover={{ 
@@ -162,7 +162,7 @@ const RestaurantsListPage = () => {
               borderRadius="xl"
               transition="all 0.3s"
             >
-              Add Restaurant
+              <LuPlus /> Add Restaurant
             </Button>
           </Flex>
         </Box>
@@ -201,7 +201,7 @@ const RestaurantsListPage = () => {
         </Box>
 
         {/* Restaurant Cards Grid */}
-        <VStack spacing={4} align="stretch">
+        <VStack gap={4} align="stretch">
           {filteredRestaurants.map((restaurant, index) => (
             <Box
               key={restaurant._id}
@@ -231,12 +231,12 @@ const RestaurantsListPage = () => {
                     mb={3}
                     align={{ base: "start", sm: "center" }}
                   >
-                    <Heading size="md" color="gray.800" noOfLines={1}>
+                    <Heading size="md" color="gray.800" lineClamp={1}>
                       {restaurant.name}
                     </Heading>
-                    <HStack spacing={2} flexWrap="wrap">
+                    <HStack gap={2} flexWrap="wrap">
                       <Badge
-                        colorScheme={
+                        colorPalette={
                           restaurant.accountStatus === "active"
                             ? "green"
                             : restaurant.accountStatus === "pending"
@@ -251,15 +251,15 @@ const RestaurantsListPage = () => {
                         {restaurant.accountStatus || "pending"}
                       </Badge>
                       {restaurant.isVerified && (
-                        <Badge colorScheme="blue" fontSize="xs" px={2} py={1} borderRadius="md">
+                        <Badge colorPalette="blue" fontSize="xs" px={2} py={1} borderRadius="md">
                           Verified
                         </Badge>
                       )}
                     </HStack>
                   </Flex>
 
-                  <VStack align="start" spacing={2} fontSize="sm" color="gray.600">
-                    <HStack spacing={4} flexWrap="wrap">
+                  <VStack align="start" gap={2} fontSize="sm" color="gray.600">
+                    <HStack gap={4} flexWrap="wrap">
                       <Text>
                         📍 {restaurant.address?.city || "N/A"}
                       </Text>
@@ -270,7 +270,7 @@ const RestaurantsListPage = () => {
                         👥 {restaurant.totalCapacity || 0} seats
                       </Text>
                     </HStack>
-                    <HStack spacing={4} flexWrap="wrap">
+                    <HStack gap={4} flexWrap="wrap">
                       <Text>
                         📧 {restaurant.email}
                       </Text>
@@ -283,7 +283,7 @@ const RestaurantsListPage = () => {
 
                 {/* Action Buttons */}
                 <HStack
-                  spacing={2}
+                  gap={2}
                   justify={{ base: "flex-end", md: "center" }}
                   flexShrink={0}
                 >
@@ -291,7 +291,7 @@ const RestaurantsListPage = () => {
                     aria-label="View"
                     size="md"
                     variant="ghost"
-                    colorScheme="blue"
+                    colorPalette="blue"
                     onClick={() => navigate(`/booking`)}
                     borderRadius="lg"
                     _hover={{ bg: "blue.50" }}
@@ -302,7 +302,7 @@ const RestaurantsListPage = () => {
                     aria-label="Edit"
                     size="md"
                     variant="ghost"
-                    colorScheme="cyan"
+                    colorPalette="cyan"
                     onClick={() => navigate(`/admin/restaurants/edit/${restaurant._id}`)}
                     borderRadius="lg"
                     _hover={{ bg: "cyan.50" }}
@@ -313,7 +313,7 @@ const RestaurantsListPage = () => {
                     aria-label="Delete"
                     size="md"
                     variant="ghost"
-                    colorScheme="red"
+                    colorPalette="red"
                     onClick={() => openDeleteModal(restaurant._id)}
                     borderRadius="lg"
                     _hover={{ bg: "red.50" }}
@@ -328,7 +328,7 @@ const RestaurantsListPage = () => {
 
         {filteredRestaurants.length === 0 && !isLoading && (
           <Center py={16}>
-            <VStack spacing={4}>
+            <VStack gap={4}>
               <Text fontSize="4xl">🔍</Text>
               <Text color="gray.500" fontSize="lg">
                 {searchQuery ? "No restaurants found matching your search" : "No restaurants yet"}
@@ -348,7 +348,7 @@ const RestaurantsListPage = () => {
         )}
 
         {/* Delete Confirmation Modal */}
-        {isOpen && (
+        {open && (
           <>
             <Box
               position="fixed"
@@ -402,7 +402,7 @@ const RestaurantsListPage = () => {
                   Cancel
                 </Button>
                 <Button 
-                  colorScheme="red" 
+                  colorPalette="red" 
                   onClick={handleDelete}
                   _hover={{ transform: "translateY(-2px)", boxShadow: "lg" }}
                   transition="all 0.3s"

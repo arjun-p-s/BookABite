@@ -7,7 +7,7 @@ import ChatHeader from "./ChatHeader";
 import type { Message } from "./types";
 
 type ChatPanelProps = {
-  isOpen: boolean;
+  open: boolean;
   messages: Message[];
   isLoading: boolean;
   onClose: () => void;
@@ -33,13 +33,13 @@ const slideInUp = keyframes`
 `;
 
 const ChatPanel = ({
-  isOpen,
+  open,
   messages,
   isLoading,
   onClose,
   onSendMessage,
 }: ChatPanelProps) => {
-  if (!isOpen) return null;
+  if (!open) return null;
 
   return (
     <>

@@ -64,7 +64,7 @@ const ChatFooter = ({ onSendMessage, isLoading }: ChatFooterProps) => {
         <IconButton
           aria-label="Voice input"
           variant="ghost"
-          colorScheme="cyan"
+          colorPalette="cyan"
           borderRadius="12px"
           size={{ base: "md", md: "lg" }}
         >

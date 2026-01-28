@@ -47,7 +47,7 @@ const BookingHero = ({ restaurant }: BookingHeroProps) => (
   >
     <Stack direction={{ base: "column", md: "row" }} gap={{ base: 4, md: 10 }} align="center">
       <VStack align="flex-start" gap={4} flex="1">
-        <Badge colorScheme="cyan" borderRadius="full" px={4} py={1} fontSize="0.85rem">
+        <Badge colorPalette="cyan" borderRadius="full" px={4} py={1} fontSize="0.85rem">
           Premium Restaurant Booking
         </Badge>
         <Heading fontSize={{ base: "2.25rem", md: "3rem" }} color="#0f172a" letterSpacing="-1px" lineHeight="1.1">

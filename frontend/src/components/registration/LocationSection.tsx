@@ -119,7 +119,7 @@ const LocationSection = ({ formData, onInputChange }: LocationSectionProps) => {
           </Stack>
           <Button
             mt={3}
-            colorScheme="cyan"
+            colorPalette="cyan"
             variant="outline"
             onClick={handleMapPinClick}
             borderRadius="12px"

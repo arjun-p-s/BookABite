@@ -33,24 +33,24 @@ const BookingsPage = () => {
           <Heading size="lg" color="gray.800">
             Bookings Management
           </Heading>
-          <Box
-            as="select"
+          <select
             value={statusFilter}
-            onChange={(e: any) => setStatusFilter(e.target.value)}
-            width="200px"
-            bg="white"
-            p={2}
-            borderRadius="md"
-            border="1px"
-            borderColor="gray.200"
-            fontSize="sm"
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{
+              width: "200px",
+              background: "white",
+              padding: "0.5rem",
+              borderRadius: "0.375rem",
+              border: "1px solid #E2E8F0",
+              fontSize: "0.875rem",
+            }}
           >
             <option value="all">All Status</option>
             <option value="confirmed">Confirmed</option>
             <option value="pending">Pending</option>
             <option value="completed">Completed</option>
             <option value="cancelled">Cancelled</option>
-          </Box>
+          </select>
         </HStack>
 
         <Box
@@ -101,7 +101,7 @@ const BookingsPage = () => {
                     ${booking.totalAmount}
                   </Box>
                   <Box as="td" p={4}>
-                    <Badge colorScheme={getStatusColor(booking.status)}>
+                    <Badge colorPalette={getStatusColor(booking.status)}>
                       {booking.status}
                     </Badge>
                   </Box>

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { Message } from "../components/chat/types";
 
 type ChatContextType = {
-  isOpen: boolean;
+  open: boolean;
   messages: Message[];
   isLoading: boolean;
   openChat: () => void;
@@ -14,7 +14,7 @@ type ChatContextType = {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export const ChatProvider = ({ children }: { children: ReactNode }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [open, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -70,7 +70,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   return (
     <ChatContext.Provider
       value={{
-        isOpen,
+        open,
         messages,
         isLoading,
         openChat,

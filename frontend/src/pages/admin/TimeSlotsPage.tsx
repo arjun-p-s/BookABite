@@ -307,7 +307,7 @@ const handleUpdateSlot = async () => {
       <AdminLayout>
         <Center minH="400px">
           <Box textAlign="center">
-            <Spinner size="xl" color="cyan.500" thickness="4px" mb={4} />
+            <Spinner size="xl" color="cyan.500"  mb={4} />
             <Text color="gray.600">Loading restaurants...</Text>
           </Box>
         </Center>
@@ -327,7 +327,7 @@ const handleUpdateSlot = async () => {
           Manage time slots for each restaurant
         </Text>
 
-        <VStack spacing={4} align="stretch">
+        <VStack gap={4} align="stretch">
           {restaurants.map((restaurant, index) => {
             const isExpanded = expandedRestaurantId === restaurant._id;
             const restaurantSlots = timeSlots.filter(s => !s.isBlocked);
@@ -361,19 +361,19 @@ const handleUpdateSlot = async () => {
                     <Heading size={{ base: "sm", md: "md" }} color="gray.800" mb={2}>
                       {restaurant.name}
                     </Heading>
-                    <HStack spacing={3} flexWrap="wrap">
-                      <Badge colorScheme="cyan" fontSize="xs">
+                    <HStack gap={3} flexWrap="wrap">
+                      <Badge colorPalette="cyan" fontSize="xs">
                         {timeSlots.length} total slots
                       </Badge>
-                      <Badge colorScheme="green" fontSize="xs">
+                      <Badge colorPalette="green" fontSize="xs">
                         {restaurantSlots.length} available
                       </Badge>
                     </HStack>
                   </Box>
-                  <HStack spacing={2}>
+                  <HStack gap={2}>
                     <Button
                       size="sm"
-                      leftIcon={<LuPlus />}
+                      gap={2}
                       bgGradient="linear(to-r, #0ea5e9, #14b8a6)"
                       color="white"
                       _hover={{ bgGradient: "linear(to-r, #14b8a6, #10b981)" }}
@@ -383,7 +383,7 @@ const handleUpdateSlot = async () => {
                       }}
                       display={{ base: "none", sm: "flex" }}
                     >
-                      Create Slots
+                      <LuPlus /> Create Slots
                     </Button>
                     <IconButton
                       aria-label="Toggle"
@@ -408,7 +408,7 @@ const handleUpdateSlot = async () => {
                     {/* Mobile Create Button */}
                     <Button
                       size="sm"
-                      leftIcon={<LuPlus />}
+                      gap={2}
                       bgGradient="linear(to-r, #0ea5e9, #14b8a6)"
                       color="white"
                       _hover={{ bgGradient: "linear(to-r, #14b8a6, #10b981)" }}
@@ -417,29 +417,29 @@ const handleUpdateSlot = async () => {
                       width={{ base: "full", sm: "auto" }}
                       display={{ base: "flex", sm: "none" }}
                     >
-                      Create Time Slots
+                      <LuPlus /> Create Time Slots
                     </Button>
 
                     {/* View Toggle */}
                     <Flex justify="space-between" align="center" mb={4} gap={4} flexWrap="wrap">
-                      <HStack spacing={2}>
+                      <HStack gap={2}>
                         <Button
                           size="sm"
-                          leftIcon={<LuCalendar />}
-                          colorScheme={viewMode === "today" ? "cyan" : "gray"}
+                          gap={2}
+                          colorPalette={viewMode === "today" ? "cyan" : "gray"}
                           variant={viewMode === "today" ? "solid" : "outline"}
                           onClick={() => setViewMode("today")}
                         >
-                          Today
+                          <LuCalendar /> Today
                         </Button>
                         <Button
                           size="sm"
-                          leftIcon={<LuCalendarDays />}
-                          colorScheme={viewMode === "week" ? "cyan" : "gray"}
+                          gap={2}
+                          colorPalette={viewMode === "week" ? "cyan" : "gray"}
                           variant={viewMode === "week" ? "solid" : "outline"}
                           onClick={() => setViewMode("week")}
                         >
-                          Week
+                          <LuCalendarDays /> Week
                         </Button>
                       </HStack>
                       
@@ -462,16 +462,16 @@ const handleUpdateSlot = async () => {
                         <Button
                           size="sm"
                           mt={3}
-                          leftIcon={<LuPlus />}
-                          colorScheme="cyan"
+                          gap={2}
+                          colorPalette="cyan"
                           variant="ghost"
                           onClick={() => navigate(`/admin/timeslots/create/${restaurant._id}`)}
                         >
-                          Create Time Slots
+                          <LuPlus /> Create Time Slots
                         </Button>
                       </Box>
                     ) : (
-                      <VStack spacing={6} align="stretch">
+                      <VStack gap={6} align="stretch">
                         {Object.entries(groupedSlots).map(([date, slots]) => (
                           <Box key={date}>
                             <Text fontWeight="700" fontSize="md" mb={3} color="gray.700">
@@ -490,7 +490,7 @@ const handleUpdateSlot = async () => {
                                   _hover={{ transform: "translateY(-2px)", boxShadow: "md" }}
                                 >
                                   <HStack justify="space-between" mb={3}>
-                                    <HStack spacing={2}>
+                                    <HStack gap={2}>
                                       <Box
                                         bg={slot.isBlocked ? "red.100" : "cyan.100"}
                                         p={2}
@@ -499,7 +499,7 @@ const handleUpdateSlot = async () => {
                                       >
                                         <LuClock size={16} />
                                       </Box>
-                                      <VStack align="start" spacing={0}>
+                                      <VStack align="start" gap={0}>
                                         <Text fontWeight="700" fontSize="sm">
                                           {formatTime(slot.time)}
                                         </Text>
@@ -508,12 +508,12 @@ const handleUpdateSlot = async () => {
                                         </Text>
                                       </VStack>
                                     </HStack>
-                                    <HStack spacing={1}>
+                                    <HStack gap={1}>
                                       <IconButton
                                         aria-label="Edit slot"
                                         size="xs"
                                         variant="ghost"
-                                        colorScheme="blue"
+                                        colorPalette="blue"
                                         onClick={() => openEditModal(slot)}
                                       >
                                         <LuPencil size={14} />
@@ -522,7 +522,7 @@ const handleUpdateSlot = async () => {
                                         aria-label="Delete slot"
                                         size="xs"
                                         variant="ghost"
-                                        colorScheme="red"
+                                        colorPalette="red"
                                         onClick={() => handleDeleteSlot(slot._id)}
                                       >
                                         <LuTrash2 size={14} />
@@ -531,7 +531,7 @@ const handleUpdateSlot = async () => {
                                   </HStack>
 
                                   <Badge
-                                    colorScheme={slot.isBlocked ? "red" : "green"}
+                                    colorPalette={slot.isBlocked ? "red" : "green"}
                                     fontSize="xs"
                                     w="full"
                                     textAlign="center"
@@ -605,7 +605,7 @@ const handleUpdateSlot = async () => {
               </HStack>
               
               <Box p={6}>
-                <VStack spacing={4} align="stretch">
+                <VStack gap={4} align="stretch">
                   <Box>
                     <Text fontSize="sm" fontWeight="600" mb={2} color="gray.700">
                       Available Seats

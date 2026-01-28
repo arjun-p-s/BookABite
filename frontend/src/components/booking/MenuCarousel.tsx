@@ -154,7 +154,7 @@ const MenuCarousel = ({
                         mt="auto"
                         width="100%"
                         variant={isSelected ? "solid" : "outline"}
-                        colorScheme={isSelected ? "teal" : "cyan"}
+                        colorPalette={isSelected ? "teal" : "cyan"}
                         onClick={() => onToggleFood(item)}
                         size={{ base: "md", md: "sm" }}
                       >

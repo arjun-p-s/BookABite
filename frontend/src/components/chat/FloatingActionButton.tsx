@@ -5,7 +5,7 @@ import { LuMessageCircle } from "react-icons/lu";
 
 type FloatingActionButtonProps = {
   onClick: () => void;
-  isOpen: boolean;
+  open: boolean;
 };
 
 const pulse = keyframes`
@@ -54,8 +54,8 @@ const fabStyles = css`
   }
 `;
 
-const FloatingActionButton = ({ onClick, isOpen }: FloatingActionButtonProps) => {
-  if (isOpen) return null;
+const FloatingActionButton = ({ onClick, open }: FloatingActionButtonProps) => {
+  if (open) return null;
 
   return (
     <Box css={fabStyles}>

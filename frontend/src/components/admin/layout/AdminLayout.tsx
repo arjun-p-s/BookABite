@@ -8,7 +8,7 @@ type AdminLayoutProps = {
 };
 
 const AdminLayout = ({ children }: AdminLayoutProps) => {
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { open, onOpen, onClose } = useDisclosure();
 
   return (
     <Flex minH="100vh" bg="gray.50">
@@ -25,7 +25,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
 
       {/* Sidebar - Mobile (Drawer) */}
       <Box
-        display={{ base: isOpen ? "block" : "none", lg: "none" }}
+        display={{ base: open ? "block" : "none", lg: "none" }}
         position="fixed"
         top={0}
         left={0}
@@ -39,7 +39,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       </Box>
 
       {/* Overlay for mobile */}
-      {isOpen && (
+      {open && (
         <Box
           display={{ base: "block", lg: "none" }}
           position="fixed"

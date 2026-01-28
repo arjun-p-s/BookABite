@@ -127,7 +127,7 @@ const RestaurantBookingPage = () => {
                 : "The restaurant you're looking for doesn't exist."}
             </Text>
             <Button
-              colorScheme="cyan"
+              colorPalette="cyan"
               onClick={() => window.location.href = "/restaurants"}
             >
               Browse Restaurants

@@ -31,7 +31,7 @@ const SubmitButton = ({ isSubmitting, isEditMode, uploadProgress, onSubmit }: Su
         onClick={onSubmit}
         borderRadius="12px"
         fontWeight="700"
-        isDisabled={isSubmitting}
+        disabled={isSubmitting}
       >
         {isSubmitting ? (
           <Box display="flex" alignItems="center" gap={3}>

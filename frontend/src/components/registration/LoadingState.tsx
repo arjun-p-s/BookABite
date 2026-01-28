@@ -10,7 +10,7 @@ const LoadingState = () => {
       bgGradient="linear(to-b, #f0f9ff, #fff)"
     >
       <VStack gap={4}>
-        <Spinner size="xl" color="cyan.500" thickness="4px" />
+        <Spinner size="xl" color="cyan.500"  />
         <Text fontSize="lg" color="gray.600">Loading restaurant data...</Text>
       </VStack>
     </Box>

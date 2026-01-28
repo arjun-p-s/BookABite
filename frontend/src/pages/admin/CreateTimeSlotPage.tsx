@@ -264,7 +264,7 @@ import {
             </Text>
           </Box>
   
-          <VStack spacing={{ base: 4, md: 6 }} align="stretch">
+          <VStack gap={{ base: 4, md: 6 }} align="stretch">
             {/* Duration Type Selection */}
             <Box
               bg="white"
@@ -285,7 +285,7 @@ import {
               <SimpleGrid columns={{ base: 1, sm: 3 }} gap={3}>
                 <Button
                   variant={formData.durationType === "single" ? "solid" : "outline"}
-                  colorScheme={formData.durationType === "single" ? "cyan" : "gray"}
+                  colorPalette={formData.durationType === "single" ? "cyan" : "gray"}
                   onClick={() => handleDurationTypeChange("single")}
                   size="lg"
                   borderRadius="xl"
@@ -294,7 +294,7 @@ import {
                 </Button>
                 <Button
                   variant={formData.durationType === "week" ? "solid" : "outline"}
-                  colorScheme={formData.durationType === "week" ? "cyan" : "gray"}
+                  colorPalette={formData.durationType === "week" ? "cyan" : "gray"}
                   onClick={() => handleDurationTypeChange("week")}
                   size="lg"
                   borderRadius="xl"
@@ -303,7 +303,7 @@ import {
                 </Button>
                 <Button
                   variant={formData.durationType === "range" ? "solid" : "outline"}
-                  colorScheme={formData.durationType === "range" ? "cyan" : "gray"}
+                  colorPalette={formData.durationType === "range" ? "cyan" : "gray"}
                   onClick={() => handleDurationTypeChange("range")}
                   size="lg"
                   borderRadius="xl"
@@ -348,7 +348,7 @@ import {
                 </Box>
               </Flex>
   
-              <VStack spacing={5} align="stretch">
+              <VStack gap={5} align="stretch">
                 <SimpleGrid columns={{ base: 1, sm: formData.durationType === "range" ? 2 : 1 }} gap={4}>
                   <Box>
                     <Text fontSize="sm" fontWeight="600" mb={2} color="gray.700">
@@ -408,8 +408,8 @@ import {
                       <Text fontSize="sm" fontWeight="600" color="gray.700">
                         Select Days <Text as="span" color="red.500">*</Text>
                       </Text>
-                      <HStack spacing={2}>
-                        <Button size="xs" variant="ghost" onClick={selectAllDays} colorScheme="cyan">
+                      <HStack gap={2}>
+                        <Button size="xs" variant="ghost" onClick={selectAllDays} colorPalette="cyan">
                           Select All
                         </Button>
                         <Button size="xs" variant="ghost" onClick={clearAllDays}>
@@ -417,7 +417,7 @@ import {
                         </Button>
                       </HStack>
                     </Flex>
-                    <Stack spacing={2}>
+                    <Stack gap={2}>
                       {daysOfWeek.map((day) => {
                         const isSelected = formData.selectedDays.includes(day.value);
                         return (
@@ -482,7 +482,7 @@ import {
                     borderColor="cyan.200"
                   >
                     <HStack>
-                      <Badge colorScheme="cyan" fontSize="sm" px={3} py={1}>
+                      <Badge colorPalette="cyan" fontSize="sm" px={3} py={1}>
                         Week: {new Date(formData.startDate).toLocaleDateString()} - {new Date(formData.endDate).toLocaleDateString()}
                       </Badge>
                     </HStack>
@@ -524,7 +524,7 @@ import {
                 </Box>
               </Flex>
   
-              <VStack spacing={5} align="stretch">
+              <VStack gap={5} align="stretch">
                 <SimpleGrid columns={{ base: 1, sm: 2 }} gap={4}>
                   <Box>
                     <Text fontSize="sm" fontWeight="600" mb={2} color="gray.700">
@@ -572,34 +572,35 @@ import {
                   <Text fontSize="sm" fontWeight="600" mb={2} color="gray.700">
                     Slot Interval <Text as="span" color="red.500">*</Text>
                   </Text>
-                  <Box
-                    as="select"
+                  <select
                     value={formData.slotInterval}
-                    onChange={(e: any) => handleInputChange("slotInterval", parseInt(e.target.value))}
-                    size="lg"
-                    w="100%"
-                    h="48px"
-                    px={4}
-                    borderRadius="xl"
-                    border="1px"
-                    borderColor="gray.300"
-                    bg="white"
-                    fontSize="md"
-                    cursor="pointer"
-                    transition="all 0.2s"
-                    _focus={{ 
-                      borderColor: "cyan.500", 
-                      boxShadow: "0 0 0 1px #0ea5e9",
-                      outline: "none"
+                    onChange={(e) => handleInputChange("slotInterval", parseInt(e.target.value))}
+                    style={{
+                      width: "100%",
+                      height: "48px",
+                      padding: "0 1rem",
+                      borderRadius: "0.75rem",
+                      border: "1px solid #D1D5DB",
+                      background: "white",
+                      fontSize: "1rem",
+                      cursor: "pointer",
                     }}
-                    _hover={{ borderColor: "gray.400" }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = "#0ea5e9";
+                      e.target.style.boxShadow = "0 0 0 1px #0ea5e9";
+                      e.target.style.outline = "none";
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = "#D1D5DB";
+                      e.target.style.boxShadow = "none";
+                    }}
                   >
                     <option value={15}>15 minutes</option>
                     <option value={30}>30 minutes</option>
                     <option value={60}>1 hour</option>
                     <option value={90}>1.5 hours</option>
                     <option value={120}>2 hours</option>
-                  </Box>
+                  </select>
                   <Text fontSize="xs" color="gray.500" mt={2}>
                     Time between each booking slot
                   </Text>
@@ -614,10 +615,10 @@ import {
                     borderColor="cyan.200"
                   >
                     <HStack>
-                      <Badge colorScheme="cyan" fontSize="sm" px={3} py={1}>
+                      <Badge colorPalette="cyan" fontSize="sm" px={3} py={1}>
                         Daily Duration: {calculateDuration()} hours
                       </Badge>
-                      <Badge colorScheme="teal" fontSize="sm" px={3} py={1}>
+                      <Badge colorPalette="teal" fontSize="sm" px={3} py={1}>
                         Slots per day: {Math.floor((parseFloat(calculateDuration() || "0") * 60) / formData.slotInterval)}
                       </Badge>
                     </HStack>
@@ -760,7 +761,7 @@ import {
   
             {/* Action Buttons */}
             <HStack
-              spacing={4}
+              gap={4}
               pt={4}
               style={{
                 animation: "fadeSlideUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.4s backwards",
@@ -779,6 +780,7 @@ import {
               </Button>
               <Button
                 flex="1"
+                gap={2}
                 bgGradient="linear(to-r, #0ea5e9, #14b8a6)"
                 color="white"
                 _hover={{ 
@@ -787,15 +789,14 @@ import {
                   boxShadow: "lg"
                 }}
                 onClick={handleSubmit}
-                isDisabled={!isFormValid || isSubmitting}
-                isLoading={isSubmitting}
+                disabled={!isFormValid || isSubmitting}
+                loading={isSubmitting}
                 loadingText="Creating..."
                 size="lg"
                 borderRadius="xl"
-                leftIcon={<LuPlus />}
                 transition="all 0.3s"
               >
-                Create Time Slots
+                <LuPlus /> Create Time Slots
               </Button>
             </HStack>
           </VStack>

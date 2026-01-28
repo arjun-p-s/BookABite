@@ -12,7 +12,6 @@ import {
   Center,
   Image,
 } from "@chakra-ui/react";
-import { keyframes } from "@emotion/react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -35,10 +34,7 @@ type Restaurant = {
   priceRange?: string;
 };
 
-const hoverRise = keyframes`
-  from { transform: translateY(0); }
-  to { transform: translateY(-6px); }
-`;
+
 
 const RestaurantGrid = () => {
   const navigate = useNavigate();
@@ -92,7 +88,7 @@ const RestaurantGrid = () => {
     return (
       <Center minH="400px">
         <Box textAlign="center">
-          <Spinner size="xl" color="#0ea5e9" thickness="4px" mb={4} />
+          <Spinner size="xl" color="#0ea5e9"  mb={4} />
           <Text color="gray.600">Loading restaurants...</Text>
         </Box>
       </Center>
@@ -107,7 +103,7 @@ const RestaurantGrid = () => {
             {error}
           </Text>
           <Button
-            colorScheme="cyan"
+            colorPalette="cyan"
             onClick={() => window.location.reload()}
           >
             Retry
@@ -160,19 +156,7 @@ const RestaurantGrid = () => {
               width="100%"
               height="100%"
               objectFit="cover"
-              fallback={
-                <Box 
-                  width="100%" 
-                  height="100%" 
-                  bg="gray.200" 
-                  display="flex" 
-                  alignItems="center" 
-                  justifyContent="center"
-                >
-                  <Text color="gray.500">No Image</Text>
-                </Box>
-              }
-              onError={(e) => {
+              onError={() => {
                 console.error("Image failed to load:", restaurant.mainImage);
               }}
             />
@@ -180,17 +164,17 @@ const RestaurantGrid = () => {
 
           <Box p={{ base: 5, md: 6 }} display="flex" flexDirection="column" flex="1">
             <HStack justify="space-between" align="flex-start" mb={3} gap={3}>
-              <Heading fontSize={{ base: "xl", md: "1.35rem" }} color="#0f172a" noOfLines={1}>
+              <Heading fontSize={{ base: "xl", md: "1.35rem" }} color="#0f172a" lineClamp={1}>
                 {restaurant.name}
               </Heading>
               {restaurant.cuisineType && restaurant.cuisineType.length > 0 && (
-                <Badge colorScheme="cyan" borderRadius="full" flexShrink={0}>
+                <Badge colorPalette="cyan" borderRadius="full" flexShrink={0}>
                   {restaurant.cuisineType[0]}
                 </Badge>
               )}
             </HStack>
 
-            <Text color="gray.600" fontSize="sm" mb={3} flex="1" noOfLines={2}>
+            <Text color="gray.600" fontSize="sm" mb={3} flex="1" lineClamp={2}>
               {restaurant.description || "Delicious food and great ambiance"}
             </Text>
 
@@ -206,7 +190,7 @@ const RestaurantGrid = () => {
               </HStack>
               <HStack gap={1} color="gray.500" flexShrink={0}>
                 <Icon as={LuMapPin} />
-                <Text fontSize="sm" noOfLines={1}>
+                <Text fontSize="sm" lineClamp={1}>
                   {restaurant.address?.city || restaurant.priceRange || "$$"}
                 </Text>
               </HStack>

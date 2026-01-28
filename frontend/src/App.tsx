@@ -18,7 +18,7 @@ import AdminRestaurantListingPage from "./pages/admin/RestaurantsListPage";
 import CreateTimeSlotPage from "./pages/admin/CreateTimeSlotPage";
 
 const AppContent = () => {
-  const { isOpen, messages, isLoading, openChat, closeChat, sendMessage } =
+  const { open, messages, isLoading, openChat, closeChat, sendMessage } =
     useChat();
 
   return (
@@ -51,9 +51,9 @@ const AppContent = () => {
         </Routes>
       </Box>
       <Footer />
-      <FloatingActionButton onClick={openChat} isOpen={isOpen} />
+      <FloatingActionButton onClick={openChat} open={open} />
       <ChatPanel
-        isOpen={isOpen}
+        open={open}
         messages={messages}
         isLoading={isLoading}
         onClose={closeChat}

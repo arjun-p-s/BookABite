@@ -88,7 +88,7 @@ const OperationalDetailsSection = ({
                 key={day.value}
                 size="sm"
                 variant={formData.daysOpen.includes(day.value) ? "solid" : "outline"}
-                colorScheme={formData.daysOpen.includes(day.value) ? "cyan" : "gray"}
+                colorPalette={formData.daysOpen.includes(day.value) ? "cyan" : "gray"}
                 onClick={() => toggleDay(day.value)}
                 borderRadius="full"
                 fontWeight="normal"
@@ -128,7 +128,7 @@ const OperationalDetailsSection = ({
                 key={cuisine.value}
                 size="sm"
                 variant={formData.cuisineTypes.includes(cuisine.value) ? "solid" : "outline"}
-                colorScheme={formData.cuisineTypes.includes(cuisine.value) ? "cyan" : "gray"}
+                colorPalette={formData.cuisineTypes.includes(cuisine.value) ? "cyan" : "gray"}
                 onClick={() => toggleCuisine(cuisine.value)}
                 borderRadius="full"
               >
@@ -146,7 +146,7 @@ const OperationalDetailsSection = ({
                 key={tag}
                 size="sm"
                 variant={formData.tags.includes(tag) ? "solid" : "outline"}
-                colorScheme={formData.tags.includes(tag) ? "teal" : "gray"}
+                colorPalette={formData.tags.includes(tag) ? "teal" : "gray"}
                 onClick={() => toggleTag(tag)}
                 borderRadius="full"
               >
@@ -187,7 +187,7 @@ const OperationalDetailsSection = ({
             />
             <Button
               onClick={addCustomTag}
-              colorScheme="cyan"
+              colorPalette="cyan"
               borderRadius="12px"
               size="sm"
             >
