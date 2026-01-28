@@ -6,6 +6,9 @@ import connectDB from "./db";
 import { reservationRoutes } from './routes/reservationRoutes';
 
 
+import { EventPublisher } from './events/publisher';
+import { CacheService } from './cache/redis.service';
+
 dotenv.config();
 const app: Express = express();
 app.use(express.json());
@@ -21,7 +24,18 @@ app.use("/", reservationRoutes);
 app.get('/', (req: Request, res: Response) => {
     res.send('Hello World with reservation-service !');
 });
-connectDB()
-app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
-});
+
+const startServer = async () => {
+    try {
+        await connectDB();
+        await EventPublisher.getInstance().connect();
+
+        app.listen(port, () => {
+            console.log(`Server is running on http://localhost:${port}`);
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+    }
+};
+
+startServer();

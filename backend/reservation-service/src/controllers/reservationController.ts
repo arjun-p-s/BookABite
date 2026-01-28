@@ -1,8 +1,13 @@
 import { AuthRequest } from "../middleware/authMiddleware";
-import { Response } from "express";
+import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Reservation from "../models/reservation";
 import TimeSlot from "../models/timeSlot";
+import { validateEmail, validatePhone } from "../utils/common";
+import { EventPublisher } from "../events/publisher";
+import { CacheService } from "../cache/redis.service";
+
+// ... (Helper functions and Time Slot Controllers remain unchanged)
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -164,7 +169,7 @@ export const addTimeslot = async (req: AuthRequest, res: Response) => {
     const totalInDb = counts.reduce((sum, count) => sum + count, 0);
 
     console.log(`🔍 Verification: ${totalInDb} slots now exist in database across ${datesToGenerate.length} dates`);
-    
+
     // Log per-date breakdown
     datesToGenerate.forEach((date, idx) => {
       console.log(`   ${date}: ${counts[idx]} slots`);
@@ -191,7 +196,7 @@ export const listTimeslots = async (req: AuthRequest, res: Response) => {
   try {
     const { restaurantId, date } = req.params || {};
     const { startDate, endDate } = req.query; // NEW: Support date range queries
-    
+
     if (!restaurantId) {
       return res.status(400).json({ error: "Missing restaurantId" });
     }
@@ -201,9 +206,9 @@ export const listTimeslots = async (req: AuthRequest, res: Response) => {
     }
 
     // Build query
-    const query: any = { 
+    const query: any = {
       restaurantId,
-      isBlocked: false 
+      isBlocked: false
     };
 
     // Support both single date and date range
@@ -236,7 +241,7 @@ export const listTimeslots = async (req: AuthRequest, res: Response) => {
       isBlocked: slot.isBlocked,
     }));
 
-    res.json({ 
+    res.json({
       timeSlots: slotsWithAvailability,
       count: slotsWithAvailability.length
     });
@@ -351,7 +356,16 @@ export const addReservation = async (req: AuthRequest, res: Response) => {
   session.startTransaction();
 
   try {
-    const { restaurantId, date, time, guests, specialRequest } = req.body || {};
+    const {
+      restaurantId,
+      date,
+      time,
+      guests,
+      specialRequest,
+      customerName,
+      customerEmail,
+      customerPhone
+    } = req.body || {};
     const userId = req.user?.id;
 
     if (!userId) {
@@ -359,9 +373,20 @@ export const addReservation = async (req: AuthRequest, res: Response) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    if (!restaurantId || !date || !time || !guests) {
+    if (!restaurantId || !date || !time || !guests || !customerName || !customerEmail || !customerPhone) {
       await session.abortTransaction();
       return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Validation
+    if (!validateEmail(customerEmail)) {
+      await session.abortTransaction();
+      return res.status(400).json({ error: "Invalid email address" });
+    }
+
+    if (!validatePhone(customerPhone)) {
+      await session.abortTransaction();
+      return res.status(400).json({ error: "Invalid phone number" });
     }
 
     if (guests < 1) {
@@ -371,7 +396,7 @@ export const addReservation = async (req: AuthRequest, res: Response) => {
 
     // Find time slot
     const slot = await TimeSlot.findOne({ restaurantId, date, time }).session(session);
-    
+
     if (!slot) {
       await session.abortTransaction();
       return res.status(404).json({ error: "Time slot not found" });
@@ -386,15 +411,15 @@ export const addReservation = async (req: AuthRequest, res: Response) => {
     const availableSeats = slot.totalSeats - slot.bookedSeats;
     if (guests > availableSeats) {
       await session.abortTransaction();
-      return res.status(400).json({ 
-        error: `Only ${availableSeats} seat(s) available for this time slot` 
+      return res.status(400).json({
+        error: `Only ${availableSeats} seat(s) available for this time slot`
       });
     }
 
     if (slot.maxPeoplePerBooking && guests > slot.maxPeoplePerBooking) {
       await session.abortTransaction();
-      return res.status(400).json({ 
-        error: `Maximum ${slot.maxPeoplePerBooking} people per booking` 
+      return res.status(400).json({
+        error: `Maximum ${slot.maxPeoplePerBooking} people per booking`
       });
     }
 
@@ -409,8 +434,8 @@ export const addReservation = async (req: AuthRequest, res: Response) => {
 
     if (existingReservation) {
       await session.abortTransaction();
-      return res.status(400).json({ 
-        error: "You already have a reservation for this time slot" 
+      return res.status(400).json({
+        error: "You already have a reservation for this time slot"
       });
     }
 
@@ -423,7 +448,10 @@ export const addReservation = async (req: AuthRequest, res: Response) => {
       time,
       guests,
       specialRequest: specialRequest || "",
-      status: "confirmed"
+      status: "confirmed",
+      customerName,
+      customerEmail,
+      customerPhone
     });
 
     await reservation.save({ session });
@@ -435,6 +463,22 @@ export const addReservation = async (req: AuthRequest, res: Response) => {
     await session.commitTransaction();
 
     await reservation.populate('restaurantId', 'name mainImage address phone');
+
+    // Publish Event
+    await EventPublisher.getInstance().publishReservationCreated({
+      reservationId: (reservation as any)._id.toString(),
+      restaurantId: (reservation.restaurantId as any)._id.toString(),
+      userId: userId.toString(),
+      confirmationCode: reservation.confirmationCode,
+      date: reservation.date,
+      time: reservation.time,
+      guests: reservation.guests,
+      customerEmail: reservation.customerEmail,
+      customerName: reservation.customerName,
+      status: reservation.status,
+      specialRequest: reservation.specialRequest || "",
+      createdAt: reservation.createdAt.toISOString()
+    });
 
     console.log(`✅ Reservation created: ${reservation._id}, ${guests} guests`);
 
@@ -456,7 +500,7 @@ export const addReservation = async (req: AuthRequest, res: Response) => {
 export const listReservation = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user?.id;
-    
+
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
@@ -500,14 +544,14 @@ export const cancelReservation = async (req: AuthRequest, res: Response) => {
 
     if (!reservation) {
       await session.abortTransaction();
-      return res.status(404).json({ 
-        error: "Reservation not found or already cancelled" 
+      return res.status(404).json({
+        error: "Reservation not found or already cancelled"
       });
     }
 
     // Find time slot and restore seats
     const slot = await TimeSlot.findById(reservation.timeSlotId).session(session);
-    
+
     if (slot) {
       slot.bookedSeats -= reservation.guests;
       if (slot.bookedSeats < 0) slot.bookedSeats = 0;
@@ -516,15 +560,26 @@ export const cancelReservation = async (req: AuthRequest, res: Response) => {
 
     // Update reservation status
     reservation.status = "cancelled";
+    reservation.cancelledAt = new Date();
+    reservation.cancellationReason = req.body.reason || "User cancelled";
     await reservation.save({ session });
 
     await session.commitTransaction();
 
+    // Publish Event
+    await EventPublisher.getInstance().publishReservationCancelled({
+      reservationId: (reservation as any)._id.toString(),
+      restaurantId: reservation.restaurantId.toString(),
+      userId: userId.toString(),
+      reason: reservation.cancellationReason || "Unknown",
+      cancelledAt: reservation.cancelledAt!.toISOString()
+    });
+
     console.log(`🚫 Reservation cancelled: ${reservationId}`);
 
-    res.json({ 
+    res.json({
       message: "Reservation cancelled successfully",
-      reservation 
+      reservation
     });
 
   } catch (err) {
@@ -533,5 +588,146 @@ export const cancelReservation = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: "Failed to cancel reservation" });
   } finally {
     session.endSession();
+  }
+};
+
+// GET RESERVATION BY CONFIRMATION CODE
+export const getByConfirmation = async (req: Request, res: Response) => {
+  try {
+    const { code } = req.params;
+
+    if (!code) {
+      return res.status(400).json({ error: "Confirmation code required" });
+    }
+
+    // Check cache first
+    const cached = await CacheService.getInstance().getReservationByConfirmation(code.toUpperCase());
+    if (cached) {
+      return res.json({ reservation: cached });
+    }
+
+    const reservation = await Reservation.findOne({
+      confirmationCode: code.toUpperCase()
+    }).populate('restaurantId', 'name mainImage address phone');
+
+    if (!reservation) {
+      return res.status(404).json({ error: "Reservation not found" });
+    }
+
+    // Cache result
+    await CacheService.getInstance().cacheReservationByConfirmation(code.toUpperCase(), reservation);
+
+    res.json({ reservation });
+  } catch (err) {
+    console.error("❌ Error fetching reservation by code:", err);
+    res.status(500).json({ error: "Failed to fetch reservation" });
+  }
+};
+
+// GET RESERVATION BY ID
+export const getReservationById = async (req: AuthRequest, res: Response) => {
+  try {
+    const { reservationId } = req.params;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const reservation = await Reservation.findOne({
+      _id: reservationId,
+      userId // Security: Only allow owner to view
+    }).populate('restaurantId', 'name mainImage address phone');
+
+    if (!reservation) {
+      return res.status(404).json({ error: "Reservation not found" });
+    }
+
+    res.json({ reservation });
+  } catch (err) {
+    console.error("❌ Error fetching reservation:", err);
+    res.status(500).json({ error: "Failed to fetch reservation" });
+  }
+};
+
+// GET RESTAURANT RESERVATIONS
+export const getRestaurantReservations = async (req: AuthRequest, res: Response) => {
+  try {
+    const { restaurantId } = req.params;
+    const { status, date } = req.query;
+
+    // Security check: Ensure user is admin of this restaurant
+    // This is a simplified check, ideally should check if user owns THIS restaurant
+    const user = req.user;
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ error: 'Unauthorized: Restaurant admin access required' });
+    }
+
+    const filters: any = {};
+    if (status) filters.status = status;
+    if (date) filters.date = date;
+
+    const reservations = await (Reservation as any).findByRestaurant(restaurantId, filters) // Cast safely to any
+      .populate('userId', 'name email');
+
+    res.json({
+      reservations,
+      count: reservations.length
+    });
+  } catch (err) {
+    console.error("❌ Error fetching restaurant reservations:", err);
+    res.status(500).json({ error: "Failed to fetch reservations" });
+  }
+};
+
+// UPDATE RESERVATION STATUS
+export const updateReservationStatus = async (req: AuthRequest, res: Response) => {
+  try {
+    const { reservationId } = req.params;
+    const { status } = req.body;
+
+    // Security check
+    const user = req.user;
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ error: 'Unauthorized: Admin access required' });
+    }
+
+    if (!['confirmed', 'completed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    const reservation = await Reservation.findById(reservationId);
+    if (!reservation) {
+      return res.status(404).json({ error: 'Reservation not found' });
+    }
+
+    // If cancelling, ensure seats are restored (if not already cancelled)
+    if (status === 'cancelled' && reservation.status !== 'cancelled') {
+      const slot = await TimeSlot.findById(reservation.timeSlotId);
+      if (slot) {
+        slot.bookedSeats -= reservation.guests;
+        if (slot.bookedSeats < 0) slot.bookedSeats = 0;
+        await slot.save();
+      }
+      reservation.cancelledAt = new Date();
+      reservation.cancellationReason = req.body.reason || "Admin cancelled";
+    }
+
+    reservation.status = status;
+    await reservation.save();
+
+    // Publish Event
+    await EventPublisher.getInstance().publishReservationStatusChanged({
+      reservationId: (reservation as any)._id.toString(),
+      restaurantId: reservation.restaurantId.toString(),
+      userId: reservation.userId.toString(),
+      status,
+      updatedAt: new Date().toISOString()
+    });
+
+    res.json({ message: 'Status updated', reservation });
+  } catch (err) {
+    console.error("❌ Error updating reservation status:", err);
+    res.status(500).json({ error: "Failed to update status" });
   }
 };
