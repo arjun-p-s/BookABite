@@ -40,7 +40,8 @@ export class CacheService {
             try {
                 await this.client.connect();
             } catch (error) {
-                console.error('❌ Failed to connect to Redis:', error);
+                console.warn('⚠️ Redis Connection Failed - Running without caching');
+                // Do not throw, allow service to start
             }
         }
     }

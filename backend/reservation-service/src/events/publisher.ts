@@ -30,7 +30,8 @@ export class EventPublisher {
                 this.isConnected = true;
                 console.log('✅ Kafka Producer connected');
             } catch (error) {
-                console.error('❌ Failed to connect to Kafka:', error);
+                console.warn('⚠️ Kafka Connection Failed - Running in isolated mode (Events will not be published)');
+                // Do not throw error, allow service to start without Kafka
             }
         }
     }
